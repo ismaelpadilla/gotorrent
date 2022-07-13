@@ -12,6 +12,8 @@ import (
 	"github.com/pkg/browser"
 )
 
+var selectedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
+
 type model struct {
 	torrents       []interfaces.Torrent
 	cursorPosition int
@@ -128,11 +130,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	// adjust viewport if cursor position isn't visible
-	if m.cursorPosition < m.viewport.YOffset {
-		m.viewport.LineUp(m.viewport.YOffset - m.cursorPosition)
+	// -1 because of the header line
+	if m.cursorPosition < m.viewport.YOffset - 1 {
+		m.viewport.LineUp(m.viewport.YOffset - m.cursorPosition - 1)
 	}
-	if m.cursorPosition > m.viewport.Height+m.viewport.YOffset-1 {
-		m.viewport.LineDown(m.cursorPosition - m.viewport.Height - m.viewport.YOffset + 1)
+	if m.cursorPosition > m.viewport.Height+m.viewport.YOffset - 2 {
+		m.viewport.LineDown(m.cursorPosition - m.viewport.Height - m.viewport.YOffset + 2)
 	}
 
 	cmds = append(cmds, cmd)
@@ -145,7 +148,8 @@ func (m model) headerView() string {
 }
 
 func (m model) footerView() string {
-	info := fmt.Sprintf("\nInput torrent number: %s\n", m.input)
+	info := "\nInput torrent number: "
+	info += selectedStyle.Render(m.input) + "\n"
 
 	// debug info (TODO: only display if debug flag is used)
 	info += fmt.Sprintf("\nCursorPos: %d, Height: %d, Offset: %d\n", m.cursorPosition, m.viewport.Height, m.viewport.YOffset)
@@ -159,17 +163,17 @@ func (m model) GetContent() string {
 
 	// Iterate over our choices
 	for i, choice := range m.torrents {
+		dateInt, _ := strconv.ParseInt(choice.Uploaded, 10, 64)
+		date := time.Unix(dateInt, 0).Format("2006-01-02")
 
 		// Is the cursor pointing at this choice?
 		cursor := " "
 		if m.cursorPosition == i {
 			cursor = ">"
+			s += selectedStyle.Render(fmt.Sprintf("%s %3d %64s %9s %4d %4d %s", cursor, i, choice.Title, choice.GetPrettySize(), choice.Seeders, choice.Leechers, date)) + "\n"
+		} else {
+			s += fmt.Sprintf("%s %3d %64s %9s %4d %4d %s\n", cursor, i, choice.Title, choice.GetPrettySize(), choice.Seeders, choice.Leechers, date)
 		}
-
-		// Render the row
-		dateInt, _ := strconv.ParseInt(choice.Uploaded, 10, 64)
-		date := time.Unix(dateInt, 0).Format("2006-01-02")
-		s += fmt.Sprintf("%s %3d %64s %9s %4d %4d %s\n", cursor, i, choice.Title, choice.GetPrettySize(), choice.Seeders, choice.Leechers, date)
 	}
 	return s
 }

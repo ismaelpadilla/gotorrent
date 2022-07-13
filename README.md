@@ -26,4 +26,4 @@ Input a number and press enter to navigate to that torrent's magnet link. Or use
 - [ ] In-app help.
 - [ ] Command line flags and options.
 - [ ] Error handling.
-- [ ] Fluff (colors, etc).
+- [x] Fluff (colors, etc).
