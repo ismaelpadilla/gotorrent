@@ -2,7 +2,6 @@ package thepiratebay
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -36,8 +35,6 @@ func (p pirateBay) Search(a string) []interfaces.Torrent {
 	body, _ := io.ReadAll(result.Body)
 	var bodyParsed []pirateBayTorrent
 	json.Unmarshal(body, &bodyParsed)
-
-	fmt.Println(bodyParsed)
 
 	torrents := make([]interfaces.Torrent, len(bodyParsed))
 	for i, pbt := range bodyParsed {
