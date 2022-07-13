@@ -85,7 +85,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Enter navigates to magnet link
 		case "enter":
-			browser.OpenURL(m.torrents[m.cursorPosition].MagnetLink)
+			go browser.OpenURL(m.torrents[m.cursorPosition].MagnetLink)
 
 		}
 
@@ -155,7 +155,7 @@ func (m model) footerView() string {
 
 func (m model) GetContent() string {
 	// table header
-	s := fmt.Sprintf("%s %3s %64s %8s %4s %4s %s\n", " ", "No.", "Title", "Size", "S", "L", "Uploaded")
+	s := fmt.Sprintf("%s %3s %64s %9s %4s %4s %s\n", " ", "No.", "Title", "Size", "S", "L", "Uploaded")
 
 	// Iterate over our choices
 	for i, choice := range m.torrents {
@@ -169,7 +169,7 @@ func (m model) GetContent() string {
 		// Render the row
 		dateInt, _ := strconv.ParseInt(choice.Uploaded, 10, 64)
 		date := time.Unix(dateInt, 0).Format("2006-01-02")
-		s += fmt.Sprintf("%s %3d %64s %8s %4d %4d %s\n", cursor, i, choice.Title, choice.GetPrettySize(), choice.Seeders, choice.Leechers, date)
+		s += fmt.Sprintf("%s %3d %64s %9s %4d %4d %s\n", cursor, i, choice.Title, choice.GetPrettySize(), choice.Seeders, choice.Leechers, date)
 	}
 	return s
 }
