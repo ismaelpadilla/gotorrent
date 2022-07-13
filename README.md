@@ -22,7 +22,7 @@ Input a number and press enter to navigate to that torrent's magnet link. Or use
 
 # Todo
 
-- [ ] Improve UI (display an actual table with seeders, leechers, etc).
+- [x] Improve UI (display an actual table with seeders, leechers, etc).
 - [ ] In-app help.
 - [ ] Command line flags and options.
 - [ ] Error handling.
