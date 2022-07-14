@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -18,17 +19,27 @@ type model struct {
 	torrents       []interfaces.Torrent
 	cursorPosition int
 	input          string
+	keys           keyMap
+	help           help.Model
 	viewport       viewport.Model
+	height         int
 	ready          bool
 }
 
 func InitialModel(torrents []interfaces.Torrent) model {
 	choices := make([]string, len(torrents))
+	h := help.New()
+
+	// call h.View to do some initialization that may cause problems if called later
+	h.View(keys)
+
 	for i, t := range torrents {
 		choices[i] = t.Title
 	}
 	return model{
 		torrents: torrents,
+		keys:     keys,
+		help:     h,
 	}
 }
 
@@ -39,7 +50,6 @@ func (m model) Init() tea.Cmd {
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	useHighPerformanceRenderer := false
 	var (
-		cmd  tea.Cmd
 		cmds []tea.Cmd
 	)
 
@@ -52,7 +62,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 
 		// These keys should exit the program.
-		case "ctrl+c", "q":
+		case "ctrl+c", "q", "esc":
 			return m, tea.Quit
 
 		// The "up" and "k" keys move the cursor up
@@ -89,9 +99,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			go browser.OpenURL(m.torrents[m.cursorPosition].MagnetLink)
 
+		case m.keys.Help.Help().Key:
+			m.help.ShowAll = !m.help.ShowAll
+
+			// adjust viewport, since toggling help changes footer size
+			headerHeight := lipgloss.Height(m.headerView())
+			footerHeight := lipgloss.Height(m.footerView())
+			verticalMarginHeight := headerHeight + footerHeight
+			m.viewport.Height = m.height - verticalMarginHeight
 		}
 
 		m.viewport.SetContent(m.GetContent())
+
 	case tea.WindowSizeMsg:
 		headerHeight := lipgloss.Height(m.headerView())
 		footerHeight := lipgloss.Height(m.footerView())
@@ -104,8 +123,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// quickly, though asynchronously, which is why we wait for them
 			// here.
 			m.viewport = viewport.New(msg.Width, msg.Height-verticalMarginHeight)
+			m.height = msg.Height
 			m.viewport.YPosition = headerHeight
 			m.viewport.HighPerformanceRendering = useHighPerformanceRenderer
+			m.help.Width = msg.Width
 			m.viewport.SetContent(m.GetContent())
 			m.ready = true
 
@@ -113,32 +134,32 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// most cases you won't need.
 			//
 			// Render the viewport one line below the header.
-			m.viewport.YPosition = headerHeight + 1
+			// m.viewport.YPosition = headerHeight
 		} else {
+			m.height = msg.Height
 			m.viewport.Width = msg.Width
 			m.viewport.Height = msg.Height - verticalMarginHeight
 		}
-		// println(m.viewport.Height)
+		// m.help.Width = msg.Width
 
-		// if useHighPerformanceRenderer {
-		// Render (or re-render) the whole viewport. Necessary both to
-		// initialize the viewport and when the window is resized.
-		//
-		// This is needed for high-performance rendering only.
-		// cmds = append(cmds, viewport.Sync(m.viewport))
-		// }
+		if useHighPerformanceRenderer {
+			// Render (or re-render) the whole viewport. Necessary both to
+			// initialize the viewport and when the window is resized.
+			//
+			// This is needed for high-performance rendering only.
+			cmds = append(cmds, viewport.Sync(m.viewport))
+		}
 	}
 
 	// adjust viewport if cursor position isn't visible
 	// -1 because of the header line
-	if m.cursorPosition < m.viewport.YOffset - 1 {
+	if m.cursorPosition < m.viewport.YOffset-1 {
 		m.viewport.LineUp(m.viewport.YOffset - m.cursorPosition - 1)
 	}
-	if m.cursorPosition > m.viewport.Height+m.viewport.YOffset - 2 {
+	if m.cursorPosition > m.viewport.Height+m.viewport.YOffset-2 {
 		m.viewport.LineDown(m.cursorPosition - m.viewport.Height - m.viewport.YOffset + 2)
 	}
-
-	cmds = append(cmds, cmd)
+	// vp, cmd := m.viewport.Update(msg)
 	return m, tea.Batch(cmds...)
 }
 
@@ -151,10 +172,14 @@ func (m model) footerView() string {
 	info := "\nInput torrent number: "
 	info += selectedStyle.Render(m.input) + "\n"
 
+	helpView := m.help.View(m.keys)
+
 	// debug info (TODO: only display if debug flag is used)
 	info += fmt.Sprintf("\nCursorPos: %d, Height: %d, Offset: %d\n", m.cursorPosition, m.viewport.Height, m.viewport.YOffset)
 
-	return lipgloss.JoinHorizontal(lipgloss.Center, info)
+	infoCentered := lipgloss.JoinHorizontal(lipgloss.Center, info)
+
+	return infoCentered + helpView
 }
 
 func (m model) GetContent() string {

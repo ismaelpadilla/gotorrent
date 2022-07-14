@@ -24,7 +24,9 @@ func main() {
 
 	torrents := client.Search(query)
 
-	p := tea.NewProgram(ui.InitialModel(torrents))
+	p := tea.NewProgram(ui.InitialModel(torrents),
+		tea.WithAltScreen(),
+	)
 
 	if err := p.Start(); err != nil {
 		fmt.Printf("An error ocurred: %v", err)
