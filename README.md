@@ -9,6 +9,12 @@ This is a work in progress.
 # Installation
 
 ```sh
+go install github.com/ismaelpadilla/gotorrent@latest
+```
+
+Alternatively, you can clone the repo:
+
+```sh
 git clone https://github.com/ismaelpadilla/gotorrent
 cd gotorrent
 go install
