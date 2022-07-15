@@ -1,5 +1,7 @@
 # gotorrent
 
+[![golangci-lint](https://github.com/ismaelpadilla/gotorrent/actions/workflows/golangci-lint.yml/badge.svg)](https://github.com/ismaelpadilla/gotorrent/actions/workflows/golangci-lint.yml)
+
 TUI for searching torrents. Currently queries ThePirateBay's API.
 
 This is a work in progress.
