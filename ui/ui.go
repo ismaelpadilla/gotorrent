@@ -24,9 +24,10 @@ type model struct {
 	viewport       viewport.Model
 	height         int
 	ready          bool
+	debug          bool
 }
 
-func InitialModel(torrents []interfaces.Torrent) model {
+func InitialModel(torrents []interfaces.Torrent, debug bool) model {
 	choices := make([]string, len(torrents))
 	h := help.New()
 
@@ -40,6 +41,7 @@ func InitialModel(torrents []interfaces.Torrent) model {
 		torrents: torrents,
 		keys:     keys,
 		help:     h,
+		debug:    debug,
 	}
 }
 
@@ -174,8 +176,10 @@ func (m model) footerView() string {
 
 	helpView := m.help.View(m.keys)
 
-	// debug info (TODO: only display if debug flag is used)
-	info += fmt.Sprintf("\nCursorPos: %d, Height: %d, Offset: %d\n", m.cursorPosition, m.viewport.Height, m.viewport.YOffset)
+	// debug info
+	if m.debug {
+		info += fmt.Sprintf("\nCursorPos: %d, Height: %d, Offset: %d\n", m.cursorPosition, m.viewport.Height, m.viewport.YOffset)
+	}
 
 	infoCentered := lipgloss.JoinHorizontal(lipgloss.Center, info)
 
