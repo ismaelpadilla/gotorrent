@@ -51,9 +51,7 @@ func (m model) Init() tea.Cmd {
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	useHighPerformanceRenderer := false
-	var (
-		cmds []tea.Cmd
-	)
+	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
 
@@ -99,7 +97,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Enter navigates to magnet link
 		case "enter":
-			go browser.OpenURL(m.torrents[m.cursorPosition].MagnetLink)
+			go visitMagnetLink(m.torrents[m.cursorPosition])
 
 		case m.keys.Help.Help().Key:
 			m.help.ShowAll = !m.help.ShowAll
@@ -192,8 +190,13 @@ func (m model) GetContent() string {
 
 	// Iterate over our choices
 	for i, choice := range m.torrents {
-		dateInt, _ := strconv.ParseInt(choice.Uploaded, 10, 64)
-		date := time.Unix(dateInt, 0).Format("2006-01-02")
+		dateInt, err := strconv.ParseInt(choice.Uploaded, 10, 64)
+		var date string
+		if err != nil {
+			date = "err"
+		} else {
+			date = time.Unix(dateInt, 0).Format("2006-01-02")
+		}
 
 		// Is the cursor pointing at this choice?
 		cursor := " "
@@ -212,4 +215,11 @@ func (m model) View() string {
 		return "\n  Initializing..."
 	}
 	return fmt.Sprintf("%s\n%s\n%s", m.headerView(), m.viewport.View(), m.footerView())
+}
+
+func visitMagnetLink(torrent interfaces.Torrent) {
+	err := browser.OpenURL(torrent.MagnetLink)
+	if err != nil {
+		fmt.Println("error")
+	}
 }

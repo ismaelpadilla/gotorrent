@@ -25,5 +25,5 @@ Input a number and press enter to navigate to that torrent's magnet link. Or use
 - [x] Improve UI (display an actual table with seeders, leechers, etc).
 - [x] In-app help.
 - [x] Command line flags and options.
-- [ ] Error handling.
+- [x] Error handling.
 - [x] Fluff (colors, etc).

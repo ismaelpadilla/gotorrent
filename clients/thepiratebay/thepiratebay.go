@@ -3,6 +3,7 @@ package thepiratebay
 import (
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -30,11 +31,20 @@ func (p pirateBay) HealthCheck() bool {
 
 func (p pirateBay) Search(a string) []interfaces.Torrent {
 	url := "https://apibay.org/q.php?q=" + a
-	result, _ := http.Get(url)
+	result, err := http.Get(url)
+	if err != nil {
+		log.Panic(err)
+	}
 
-	body, _ := io.ReadAll(result.Body)
+	body, err := io.ReadAll(result.Body)
+	if err != nil {
+		log.Panic(err)
+	}
 	var bodyParsed []pirateBayTorrent
-	json.Unmarshal(body, &bodyParsed)
+	err = json.Unmarshal(body, &bodyParsed)
+	if err != nil {
+		log.Panic(err)
+	}
 
 	torrents := make([]interfaces.Torrent, len(bodyParsed))
 	for i, pbt := range bodyParsed {
@@ -46,9 +56,18 @@ func (p pirateBay) Search(a string) []interfaces.Torrent {
 //
 func (p pirateBayTorrent) convert() interfaces.Torrent {
 	magnetLink := "magnet:?xt=urn:btih:" + p.InfoHash
-	size, _ := strconv.Atoi(p.Size)
-	seeders, _ := strconv.Atoi(p.Seeders)
-	leechers, _ := strconv.Atoi(p.Leechers)
+	size, err := strconv.Atoi(p.Size)
+	if err != nil {
+		log.Panic(err)
+	}
+	seeders, err := strconv.Atoi(p.Seeders)
+	if err != nil {
+		log.Panic(err)
+	}
+	leechers, err := strconv.Atoi(p.Leechers)
+	if err != nil {
+		log.Panic(err)
+	}
 
 	return interfaces.Torrent{
 		Title:      p.Name,
