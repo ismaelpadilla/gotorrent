@@ -1,0 +1,19 @@
+linters-settings:
+  gosec:
+    excludes:
+      - G107
+linters:
+  enable: 
+    - deadcode
+    - errcheck
+    - staticcheck
+    - unused
+    - varcheck
+    - bodyclose
+    - goimports
+    - gosec
+    - predeclared
+    - revive
+    - unconvert
+    - unparam
+    - whitespace

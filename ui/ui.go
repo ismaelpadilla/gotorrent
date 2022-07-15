@@ -15,7 +15,7 @@ import (
 
 var selectedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
 
-type model struct {
+type Model struct {
 	torrents       []interfaces.Torrent
 	cursorPosition int
 	input          string
@@ -27,7 +27,7 @@ type model struct {
 	debug          bool
 }
 
-func InitialModel(torrents []interfaces.Torrent, debug bool) model {
+func InitialModel(torrents []interfaces.Torrent, debug bool) Model {
 	choices := make([]string, len(torrents))
 	h := help.New()
 
@@ -37,7 +37,7 @@ func InitialModel(torrents []interfaces.Torrent, debug bool) model {
 	for i, t := range torrents {
 		choices[i] = t.Title
 	}
-	return model{
+	return Model{
 		torrents: torrents,
 		keys:     keys,
 		help:     h,
@@ -45,22 +45,20 @@ func InitialModel(torrents []interfaces.Torrent, debug bool) model {
 	}
 }
 
-func (m model) Init() tea.Cmd {
+func (m Model) Init() tea.Cmd {
 	return nil
 }
 
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	useHighPerformanceRenderer := false
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
-
 	// Is it a key press?
 	case tea.KeyMsg:
 
 		// Which key was pressed?
 		switch msg.String() {
-
 		// These keys should exit the program.
 		case "ctrl+c", "q", "esc":
 			return m, tea.Quit
@@ -163,12 +161,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func (m model) headerView() string {
+func (m Model) headerView() string {
 	title := "Select torrent to get, or input number and press enter\n"
 	return title
 }
 
-func (m model) footerView() string {
+func (m Model) footerView() string {
 	info := "\nInput torrent number: "
 	info += selectedStyle.Render(m.input) + "\n"
 
@@ -184,7 +182,7 @@ func (m model) footerView() string {
 	return infoCentered + helpView
 }
 
-func (m model) GetContent() string {
+func (m Model) GetContent() string {
 	// table header
 	s := fmt.Sprintf("%s %3s %64s %9s %4s %4s %s\n", " ", "No.", "Title", "Size", "S", "L", "Uploaded")
 
@@ -210,7 +208,7 @@ func (m model) GetContent() string {
 	return s
 }
 
-func (m model) View() string {
+func (m Model) View() string {
 	if !m.ready {
 		return "\n  Initializing..."
 	}
