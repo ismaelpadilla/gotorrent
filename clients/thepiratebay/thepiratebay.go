@@ -11,7 +11,9 @@ import (
 )
 
 type pirateBayTorrent struct {
+	ID       string
 	Name     string
+	Descr    string
 	InfoHash string `json:"info_hash"`
 	Leechers string
 	Seeders  string
@@ -19,14 +21,14 @@ type pirateBayTorrent struct {
 	Added    string
 }
 
+type pirateBayTorrentDetails struct {
+	Descr string
+}
+
 type pirateBay struct{}
 
 func New() interfaces.Client {
 	return pirateBay{}
-}
-
-func (p pirateBay) HealthCheck() bool {
-	return true
 }
 
 func (p pirateBay) Search(a string) []interfaces.Torrent {
@@ -49,6 +51,7 @@ func (p pirateBay) Search(a string) []interfaces.Torrent {
 	torrents := make([]interfaces.Torrent, len(bodyParsed))
 	for i, pbt := range bodyParsed {
 		torrents[i] = pbt.convert()
+		torrents[i].Client = p
 	}
 	return torrents
 }
@@ -70,6 +73,7 @@ func (p pirateBayTorrent) convert() interfaces.Torrent {
 	}
 
 	return interfaces.Torrent{
+		ID:         p.ID,
 		Title:      p.Name,
 		MagnetLink: magnetLink,
 		Size:       size,
@@ -77,4 +81,24 @@ func (p pirateBayTorrent) convert() interfaces.Torrent {
 		Seeders:    seeders,
 		Leechers:   leechers,
 	}
+}
+
+func (p pirateBay) FetchTorrentDescription(torrent interfaces.Torrent) string {
+	url := "https://apibay.org/t.php?id=" + torrent.ID
+	result, err := http.Get(url)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	body, err := io.ReadAll(result.Body)
+	if err != nil {
+		log.Panic(err)
+	}
+	var bodyParsed pirateBayTorrentDetails
+	err = json.Unmarshal(body, &bodyParsed)
+	if err != nil {
+		log.Panic("cant unmarshall", err)
+	}
+
+	return bodyParsed.Descr
 }
