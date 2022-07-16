@@ -12,6 +12,7 @@ import (
 )
 
 var Debug bool
+var Persist bool
 
 var rootCmd = &cobra.Command{
 	Use:   "gotorrent <query>",
@@ -24,7 +25,7 @@ var rootCmd = &cobra.Command{
 
 		torrents := client.Search(query)
 
-		p := tea.NewProgram(ui.InitialModel(torrents, Debug),
+		p := tea.NewProgram(ui.InitialModel(torrents, Persist, Debug),
 			tea.WithAltScreen(),
 		)
 
@@ -37,6 +38,7 @@ var rootCmd = &cobra.Command{
 
 func Execute() {
 	rootCmd.PersistentFlags().BoolVarP(&Debug, "debug", "d", false, "show debug information")
+	rootCmd.PersistentFlags().BoolVarP(&Persist, "persist", "p", false, "keep gotorrent open after selecting torrent")
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)

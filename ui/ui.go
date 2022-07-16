@@ -24,10 +24,11 @@ type Model struct {
 	viewport       viewport.Model
 	height         int
 	ready          bool
+	persist        bool
 	debug          bool
 }
 
-func InitialModel(torrents []interfaces.Torrent, debug bool) Model {
+func InitialModel(torrents []interfaces.Torrent, persist bool, debug bool) Model {
 	choices := make([]string, len(torrents))
 	h := help.New()
 
@@ -41,6 +42,7 @@ func InitialModel(torrents []interfaces.Torrent, debug bool) Model {
 		torrents: torrents,
 		keys:     keys,
 		help:     h,
+		persist:  persist,
 		debug:    debug,
 	}
 }
@@ -96,6 +98,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Enter navigates to magnet link
 		case "enter":
 			go visitMagnetLink(m.torrents[m.cursorPosition])
+			if !m.persist {
+				return m, tea.Quit
+			}
 
 		case m.keys.Help.Help().Key:
 			m.help.ShowAll = !m.help.ShowAll
