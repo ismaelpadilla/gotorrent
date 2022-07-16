@@ -15,15 +15,25 @@ import (
 
 var selectedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
 
+type Mode int
+
+const (
+	List = iota
+	ShowDescription
+	ShowFiles
+)
+
 type Model struct {
 	torrents       []interfaces.Torrent
 	cursorPosition int
 	input          string
-	keys           keyMap
+	keys           help.KeyMap
 	help           help.Model
 	viewport       viewport.Model
 	height         int
 	ready          bool
+	mode           Mode
+	currentTorrent interfaces.Torrent
 	persist        bool
 	debug          bool
 }
@@ -33,14 +43,15 @@ func InitialModel(torrents []interfaces.Torrent, persist bool, debug bool) Model
 	h := help.New()
 
 	// call h.View to do some initialization that may cause problems if called later
-	h.View(keys)
+	h.View(listKeys)
 
 	for i, t := range torrents {
 		choices[i] = t.Title
 	}
 	return Model{
 		torrents: torrents,
-		keys:     keys,
+		mode:     List,
+		keys:     listKeys,
 		help:     h,
 		persist:  persist,
 		debug:    debug,
@@ -48,22 +59,19 @@ func InitialModel(torrents []interfaces.Torrent, persist bool, debug bool) Model
 }
 
 func (m Model) Init() tea.Cmd {
+	// no commands
 	return nil
 }
 
-func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	useHighPerformanceRenderer := false
-	var cmds []tea.Cmd
-
-	switch msg := msg.(type) {
-	// Is it a key press?
-	case tea.KeyMsg:
-
+func (m *Model) handleKeyPress(msg tea.KeyMsg) bool {
+	keyString := msg.String()
+	switch m.mode {
+	case List:
 		// Which key was pressed?
-		switch msg.String() {
+		switch keyString {
 		// These keys should exit the program.
 		case "ctrl+c", "q", "esc":
-			return m, tea.Quit
+			return true
 
 		// The "up" and "k" keys move the cursor up
 		case "up", "k":
@@ -95,14 +103,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.cursorPosition, _ = strconv.Atoi(m.input)
 			}
 
+		// Show description
+		case "d":
+			t := m.torrents[m.cursorPosition]
+			if t.Description == "" {
+				t.Description = t.FetchDescription()
+				m.currentTorrent = t
+			}
+			m.keys = descriptionKeys
+			m.mode = ShowDescription
+
 		// Enter navigates to magnet link
 		case "enter":
 			go visitMagnetLink(m.torrents[m.cursorPosition])
 			if !m.persist {
-				return m, tea.Quit
+				return true
 			}
 
-		case m.keys.Help.Help().Key:
+		case "?":
 			m.help.ShowAll = !m.help.ShowAll
 
 			// adjust viewport, since toggling help changes footer size
@@ -110,6 +128,54 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			footerHeight := lipgloss.Height(m.footerView())
 			verticalMarginHeight := headerHeight + footerHeight
 			m.viewport.Height = m.height - verticalMarginHeight
+		}
+
+		m.viewport.SetContent(m.GetContent())
+	case ShowDescription:
+		switch keyString {
+		case "ctrl+c":
+			return true
+
+		case "q", "esc":
+			m.mode = List
+
+		case "enter":
+			go visitMagnetLink(m.torrents[m.cursorPosition])
+			if !m.persist {
+				return true
+			}
+
+		case "?":
+			m.help.ShowAll = !m.help.ShowAll
+
+			// adjust viewport, since toggling help changes footer size
+			headerHeight := lipgloss.Height(m.headerView())
+			footerHeight := lipgloss.Height(m.footerView())
+			verticalMarginHeight := headerHeight + footerHeight
+			m.viewport.Height = m.height - verticalMarginHeight
+
+		// The "up" and "k" keys scroll up
+		case "up", "k":
+			m.viewport.LineUp(1)
+
+		// The "down" and "j" keys scroll down
+		case "down", "j":
+			m.viewport.LineDown(1)
+		}
+	}
+	return false
+}
+
+func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	useHighPerformanceRenderer := false
+	var cmds []tea.Cmd
+
+	switch msg := msg.(type) {
+	// Is it a key press?
+	case tea.KeyMsg:
+
+		if m.handleKeyPress(msg) {
+			return m, tea.Quit
 		}
 
 		m.viewport.SetContent(m.GetContent())
@@ -167,7 +233,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) headerView() string {
-	title := "Select torrent to get, or input number and press enter\n"
+	var title string
+	switch m.mode {
+	case List:
+		title = "Select torrent to get, or input number and press enter\n"
+	case ShowDescription:
+		title = m.currentTorrent.Title + "\n"
+	}
+
 	return title
 }
 
@@ -188,6 +261,9 @@ func (m Model) footerView() string {
 }
 
 func (m Model) GetContent() string {
+	if m.mode == ShowDescription {
+		return m.currentTorrent.Description
+	}
 	// table header
 	s := fmt.Sprintf("%s %3s %64s %9s %4s %4s %s\n", " ", "No.", "Title", "Size", "S", "L", "Uploaded")
 
