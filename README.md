@@ -4,8 +4,6 @@
 
 TUI for searching torrents. Currently queries ThePirateBay's API.
 
-This is a work in progress.
-
 # Installation
 
 ```sh
@@ -28,10 +26,6 @@ gotorrent <query>
 
 Input a number and press enter to navigate to that torrent's magnet link. Or use the `up` and `down` (or `j`/`k`) keys to navigate.
 
-# Todo
+# Roadmap
 
-- [x] Improve UI (display an actual table with seeders, leechers, etc).
-- [x] In-app help.
-- [x] Command line flags and options.
-- [x] Error handling.
-- [x] Fluff (colors, etc).
+While basic functionality is already implemented, there is still some work to do before publishing an official release. This is documented in the [v0.1.0 project](https://github.com/users/ismaelpadilla/projects/1/views/1).
