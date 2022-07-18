@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"time"
+	"unicode/utf8"
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -113,6 +114,16 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) bool {
 			m.keys = descriptionKeys
 			m.mode = ShowDescription
 
+		// Show files
+		case "f":
+			t := m.torrents[m.cursorPosition]
+			if t.Files == nil {
+				t.Files = t.FetchFiles()
+				m.currentTorrent = t
+			}
+			m.keys = filesKeys
+			m.mode = ShowFiles
+
 		// Enter navigates to magnet link
 		case "enter":
 			go visitMagnetLink(m.torrents[m.cursorPosition])
@@ -131,13 +142,34 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) bool {
 		}
 
 		m.viewport.SetContent(m.GetContent())
-	case ShowDescription:
+	case ShowDescription, ShowFiles:
 		switch keyString {
 		case "ctrl+c":
 			return true
 
 		case "q", "esc":
+			m.keys = listKeys
 			m.mode = List
+
+		// Show description
+		case "d":
+			t := m.torrents[m.cursorPosition]
+			if t.Description == "" {
+				t.Description = t.FetchDescription()
+				m.currentTorrent = t
+			}
+			m.keys = descriptionKeys
+			m.mode = ShowDescription
+
+		// Show files
+		case "f":
+			t := m.torrents[m.cursorPosition]
+			if t.Files == nil {
+				t.Files = t.FetchFiles()
+				m.currentTorrent = t
+			}
+			m.keys = filesKeys
+			m.mode = ShowFiles
 
 		case "enter":
 			go visitMagnetLink(m.torrents[m.cursorPosition])
@@ -239,6 +271,8 @@ func (m Model) headerView() string {
 		title = "Select torrent to get, or input number and press enter\n"
 	case ShowDescription:
 		title = m.currentTorrent.Title + "\n"
+	case ShowFiles:
+		title = m.currentTorrent.Title + "files\n"
 	}
 
 	return title
@@ -261,9 +295,31 @@ func (m Model) footerView() string {
 }
 
 func (m Model) GetContent() string {
-	if m.mode == ShowDescription {
+	switch m.mode {
+	case ShowDescription:
 		return m.currentTorrent.Description
+	case ShowFiles:
+		return m.GetTorrentFilesTable()
+	default:
+		return m.GetTorrentsTable()
 	}
+}
+
+func (m Model) GetTorrentFilesTable() string {
+	nameLength := getMaxFileNameLength(m.currentTorrent.Files)
+	nameLenghtAsString := strconv.Itoa(nameLength)
+	// table header
+	// the Name column with is variable, it is as wide as the longest name
+	s := fmt.Sprintf("%3s %"+nameLenghtAsString+"s %9s\n", "No.", "Name", "Size")
+
+	// Iterate over our choices
+	for i, choice := range m.currentTorrent.Files {
+		s += fmt.Sprintf("%3d %"+nameLenghtAsString+"s %9s\n", i, choice.Name, choice.GetPrettySize())
+	}
+	return s
+}
+
+func (m Model) GetTorrentsTable() string {
 	// table header
 	s := fmt.Sprintf("%s %3s %64s %9s %4s %4s %s\n", " ", "No.", "Title", "Size", "S", "L", "Uploaded")
 
@@ -287,6 +343,17 @@ func (m Model) GetContent() string {
 		}
 	}
 	return s
+}
+
+func getMaxFileNameLength(torrentFiles []interfaces.TorrentFile) int {
+	maxLength := 0
+	for _, tf := range torrentFiles {
+		length := utf8.RuneCountInString(tf.Name)
+		if length > maxLength {
+			maxLength = length
+		}
+	}
+	return maxLength
 }
 
 func (m Model) View() string {

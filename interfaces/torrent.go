@@ -7,6 +7,7 @@ type Torrent struct {
 	ID          string
 	Title       string
 	Description string
+	Files       []TorrentFile
 	MagnetLink  string
 	Size        int
 	Uploaded    string
@@ -20,4 +21,8 @@ func (t Torrent) GetPrettySize() string {
 
 func (t Torrent) FetchDescription() string {
 	return t.Client.FetchTorrentDescription(t)
+}
+
+func (t Torrent) FetchFiles() []TorrentFile {
+	return t.Client.FetchTorrentFiles(t)
 }

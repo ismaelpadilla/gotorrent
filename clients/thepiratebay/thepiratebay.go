@@ -25,6 +25,11 @@ type pirateBayTorrentDetails struct {
 	Descr string
 }
 
+type pirateBayTorrentFile struct {
+	Name []string
+	Size []int
+}
+
 type pirateBay struct{}
 
 func New() interfaces.Client {
@@ -101,4 +106,31 @@ func (p pirateBay) FetchTorrentDescription(torrent interfaces.Torrent) string {
 	}
 
 	return bodyParsed.Descr
+}
+
+func (p pirateBay) FetchTorrentFiles(torrent interfaces.Torrent) []interfaces.TorrentFile {
+	url := "https://apibay.org/f.php?id=" + torrent.ID
+	result, err := http.Get(url)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	body, err := io.ReadAll(result.Body)
+	if err != nil {
+		log.Panic(err)
+	}
+	var bodyParsed []pirateBayTorrentFile
+	err = json.Unmarshal(body, &bodyParsed)
+	if err != nil {
+		log.Panic("cant unmarshall", err)
+	}
+
+	torrentFiles := make([]interfaces.TorrentFile, len(bodyParsed))
+	for i, pbtf := range bodyParsed {
+		torrentFiles[i] = interfaces.TorrentFile{
+			Name: pbtf.Name[0],
+			Size: pbtf.Size[0],
+		}
+	}
+	return torrentFiles
 }

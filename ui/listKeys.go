@@ -3,11 +3,13 @@ package ui
 import "github.com/charmbracelet/bubbles/key"
 
 type listKeyMap struct {
-	Up    key.Binding
-	Down  key.Binding
-	Enter key.Binding
-	Help  key.Binding
-	Quit  key.Binding
+	Up              key.Binding
+	Down            key.Binding
+	Enter           key.Binding
+	ShowDescription key.Binding
+	ShowFiles       key.Binding
+	Help            key.Binding
+	Quit            key.Binding
 }
 
 // ShortHelp returns keybindings to be shown in the mini help view. It's part
@@ -20,8 +22,9 @@ func (k listKeyMap) ShortHelp() []key.Binding {
 // key.Map interface.
 func (k listKeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
-		{k.Up, k.Down, k.Enter}, // first column
-		{k.Help, k.Quit},        // second column
+		{k.Up, k.Down, k.Enter},          // first column
+		{k.ShowDescription, k.ShowFiles}, // second column
+		{k.Help, k.Quit},                 // third column
 	}
 }
 
@@ -37,6 +40,14 @@ var listKeys = listKeyMap{
 	Enter: key.NewBinding(
 		key.WithKeys("enter"),
 		key.WithHelp("enter", "get torrent"),
+	),
+	ShowDescription: key.NewBinding(
+		key.WithKeys("d"),
+		key.WithHelp("d", "show description"),
+	),
+	ShowFiles: key.NewBinding(
+		key.WithKeys("f"),
+		key.WithHelp("f", "show files"),
 	),
 	Help: key.NewBinding(
 		key.WithKeys("?"),
