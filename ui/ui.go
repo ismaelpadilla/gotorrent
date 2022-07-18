@@ -95,7 +95,10 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) bool {
 		// numbers and backspace change input number
 		case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9":
 			m.input += msg.String()
-			m.cursorPosition, _ = strconv.Atoi(m.input)
+			inputNumber, _ := strconv.Atoi(m.input)
+			if inputNumber < len(m.torrents)-1 {
+				m.cursorPosition = inputNumber
+			}
 
 		case "backspace":
 			// we can do this safely because m.input contains numbers only
