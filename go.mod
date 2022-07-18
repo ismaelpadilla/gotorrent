@@ -16,6 +16,7 @@ require (
 )
 
 require (
+	github.com/atotto/clipboard v0.1.4
 	github.com/charmbracelet/bubbles v0.13.0
 	github.com/charmbracelet/bubbletea v0.22.0
 	github.com/inhies/go-bytesize v0.0.0-20220417184213-4913239db9cf

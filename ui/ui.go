@@ -6,6 +6,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
@@ -35,6 +36,7 @@ type Model struct {
 	ready          bool
 	mode           Mode
 	currentTorrent interfaces.Torrent
+	message        string
 	persist        bool
 	debug          bool
 }
@@ -65,6 +67,7 @@ func (m Model) Init() tea.Cmd {
 }
 
 func (m *Model) handleKeyPress(msg tea.KeyMsg) bool {
+	m.message = ""
 	keyString := msg.String()
 	switch m.mode {
 	case List:
@@ -127,6 +130,10 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) bool {
 			m.keys = filesKeys
 			m.mode = ShowFiles
 
+		// Copy magnet link to clipboard
+		case "c":
+			m.copyMagnetLinkToClipBoard(m.torrents[m.cursorPosition])
+
 		// Enter navigates to magnet link
 		case "enter":
 			go visitMagnetLink(m.torrents[m.cursorPosition])
@@ -173,6 +180,10 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) bool {
 			}
 			m.keys = filesKeys
 			m.mode = ShowFiles
+
+		// Copy magnet link to clipboard
+		case "c":
+			m.copyMagnetLinkToClipBoard(m.torrents[m.cursorPosition])
 
 		case "enter":
 			go visitMagnetLink(m.torrents[m.cursorPosition])
@@ -284,6 +295,7 @@ func (m Model) headerView() string {
 func (m Model) footerView() string {
 	info := "\nInput torrent number: "
 	info += selectedStyle.Render(m.input) + "\n"
+	info += m.message + "\n"
 
 	helpView := m.help.View(m.keys)
 
@@ -364,6 +376,14 @@ func (m Model) View() string {
 		return "\n  Initializing..."
 	}
 	return fmt.Sprintf("%s\n%s\n%s", m.headerView(), m.viewport.View(), m.footerView())
+}
+
+func (m *Model) copyMagnetLinkToClipBoard(torrent interfaces.Torrent) {
+	if err := clipboard.WriteAll(torrent.MagnetLink); err != nil {
+		m.message = "Error while copying magnet link to clipboard"
+	} else {
+		m.message = "Magnet link copied to clipboard"
+	}
 }
 
 func visitMagnetLink(torrent interfaces.Torrent) {

@@ -6,6 +6,7 @@ type filesKeyMap struct {
 	Up              key.Binding
 	Down            key.Binding
 	Enter           key.Binding
+	CopyMagnetLink  key.Binding
 	ShowDescription key.Binding
 	GoBack          key.Binding
 	Help            key.Binding
@@ -22,9 +23,9 @@ func (k filesKeyMap) ShortHelp() []key.Binding {
 // key.Map interface.
 func (k filesKeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
-		{k.Up, k.Down, k.Enter},       // first column
-		{k.ShowDescription, k.GoBack}, // second column
-		{k.GoBack, k.Quit},            // third column
+		{k.Up, k.Down, k.Enter},                         // first column
+		{k.CopyMagnetLink, k.ShowDescription, k.GoBack}, // second column
+		{k.GoBack, k.Quit},                              // third column
 	}
 }
 
@@ -40,6 +41,10 @@ var filesKeys = filesKeyMap{
 	Enter: key.NewBinding(
 		key.WithKeys("enter"),
 		key.WithHelp("enter", "get torrent"),
+	),
+	CopyMagnetLink: key.NewBinding(
+		key.WithKeys("c"),
+		key.WithHelp("c", "copy magnet link"),
 	),
 	ShowDescription: key.NewBinding(
 		key.WithKeys("d"),
