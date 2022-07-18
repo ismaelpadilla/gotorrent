@@ -2,6 +2,9 @@ package ui
 
 import (
 	"fmt"
+	"io"
+	"net/http"
+	"os"
 	"strconv"
 	"time"
 	"unicode/utf8"
@@ -28,28 +31,32 @@ const (
 )
 
 type Model struct {
-	client         interfaces.Client
-	torrents       []interfaces.Torrent
-	cursorPosition int
-	input          string
-	keys           help.KeyMap
-	help           help.Model
-	viewport       viewport.Model
-	height         int
-	ready          bool
-	mode           Mode
-	currentTorrent interfaces.Torrent
-	searchInput    textinput.Model
-	message        string
-	persist        bool
-	debug          bool
+	client           interfaces.Client
+	torrents         []interfaces.Torrent
+	downloadLocation string
+	cursorPosition   int
+	input            string
+	keys             help.KeyMap
+	help             help.Model
+	viewport         viewport.Model
+	height           int
+	ready            bool
+	mode             Mode
+	searchInput      textinput.Model
+	message          string
+	persist          bool
+	debug            bool
 }
 
 type Config struct {
-	Client  interfaces.Client
-	Persist bool
-	Debug   bool
+	Client         interfaces.Client
+	Persist        bool
+	DownloadFolder string
+	Debug          bool
 }
+
+type errMsg struct{ err error }
+type statusMsg struct{ message string }
 
 func InitialModel(torrents []interfaces.Torrent, config Config) Model {
 	choices := make([]string, len(torrents))
@@ -64,14 +71,15 @@ func InitialModel(torrents []interfaces.Torrent, config Config) Model {
 		choices[i] = t.Title
 	}
 	return Model{
-		client:      config.Client,
-		torrents:    torrents,
-		mode:        List,
-		keys:        listKeys,
-		help:        h,
-		persist:     config.Persist,
-		searchInput: searchInput,
-		debug:       config.Debug,
+		client:           config.Client,
+		torrents:         torrents,
+		downloadLocation: config.DownloadFolder,
+		mode:             List,
+		keys:             listKeys,
+		help:             h,
+		persist:          config.Persist,
+		searchInput:      searchInput,
+		debug:            config.Debug,
 	}
 }
 
@@ -79,7 +87,8 @@ func (m Model) Init() tea.Cmd {
 	return textinput.Blink
 }
 
-func (m *Model) handleKeyPress(msg tea.KeyMsg) bool {
+func (m *Model) handleKeyPress(msg tea.KeyMsg) (bool, tea.Cmd) {
+	var cmd tea.Cmd
 	m.message = ""
 	keyString := msg.String()
 	switch m.mode {
@@ -88,7 +97,7 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) bool {
 		switch keyString {
 		// These keys should exit the program.
 		case "ctrl+c", "q", "esc":
-			return true
+			return true, nil
 
 		// The "up" and "k" keys move the cursor up
 		case "up", "k":
@@ -132,20 +141,18 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) bool {
 
 		// Show description
 		case "d":
-			t := m.torrents[m.cursorPosition]
+			t := m.getCurrentTorrent()
 			if t.Description == "" {
 				t.Description = t.FetchDescription()
-				m.currentTorrent = t
 			}
 			m.keys = descriptionKeys
 			m.mode = ShowDescription
 
 		// Show files
 		case "f":
-			t := m.torrents[m.cursorPosition]
+			t := m.getCurrentTorrent()
 			if t.Files == nil {
 				t.Files = t.FetchFiles()
-				m.currentTorrent = t
 			}
 			m.keys = filesKeys
 			m.mode = ShowFiles
@@ -158,8 +165,13 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) bool {
 		case "enter":
 			go visitMagnetLink(m.torrents[m.cursorPosition])
 			if !m.persist {
-				return true
+				return true, nil
 			}
+
+		// Download torrent file
+		case "t":
+			m.message = "Downloading .torrent"
+			cmd = cmdDownloadTorrentFile(*m)
 
 		case "?":
 			m.help.ShowAll = !m.help.ShowAll
@@ -175,7 +187,7 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) bool {
 	case ShowDescription, ShowFiles:
 		switch keyString {
 		case "ctrl+c":
-			return true
+			return true, nil
 
 		case "q", "esc":
 			m.keys = listKeys
@@ -190,20 +202,18 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) bool {
 
 		// Show description
 		case "d":
-			t := m.torrents[m.cursorPosition]
+			t := m.getCurrentTorrent()
 			if t.Description == "" {
 				t.Description = t.FetchDescription()
-				m.currentTorrent = t
 			}
 			m.keys = descriptionKeys
 			m.mode = ShowDescription
 
 		// Show files
 		case "f":
-			t := m.torrents[m.cursorPosition]
+			t := m.getCurrentTorrent()
 			if t.Files == nil {
 				t.Files = t.FetchFiles()
-				m.currentTorrent = t
 			}
 			m.keys = filesKeys
 			m.mode = ShowFiles
@@ -215,8 +225,13 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) bool {
 		case "enter":
 			go visitMagnetLink(m.torrents[m.cursorPosition])
 			if !m.persist {
-				return true
+				return true, nil
 			}
+
+		// Download torrent file
+		case "t":
+			m.message = "Downloading .torrent"
+			cmd = cmdDownloadTorrentFile(*m)
 
 		case "?":
 			m.help.ShowAll = !m.help.ShowAll
@@ -238,7 +253,7 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) bool {
 	case Search:
 		switch keyString {
 		case "ctrl+c":
-			return true
+			return true, nil
 
 		case "esc":
 			m.keys = listKeys
@@ -250,7 +265,7 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) bool {
 			m.keys = listKeys
 		}
 	}
-	return false
+	return false, cmd
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -264,10 +279,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds = append(cmds, cmd)
 
 	switch msg := msg.(type) {
+	case statusMsg:
+		m.message = msg.message
+	case errMsg:
+		m.message = msg.err.Error()
 	// Is it a key press?
 	case tea.KeyMsg:
-		if m.handleKeyPress(msg) {
+		shouldQuit, cmd := m.handleKeyPress(msg)
+		if shouldQuit {
 			return m, tea.Quit
+		}
+		if cmd != nil {
+			cmds = append(cmds, cmd)
 		}
 
 		m.viewport.SetContent(m.GetContent())
@@ -330,9 +353,9 @@ func (m Model) headerView() string {
 	case List:
 		title = "Select torrent to get, or input number and press enter\n"
 	case ShowDescription:
-		title = m.currentTorrent.Title + "\n"
+		title = m.getCurrentTorrent().Title + "\n"
 	case ShowFiles:
-		title = m.currentTorrent.Title + "files\n"
+		title = m.getCurrentTorrent().Title + " files\n"
 	case Search:
 		title = "Enter query and press enter to search, or press esc to go back\n"
 	}
@@ -349,18 +372,17 @@ func (m Model) footerView() string {
 
 	// debug info
 	if m.debug {
-		info += fmt.Sprintf("\nCursorPos: %d, Height: %d, Offset: %d\n", m.cursorPosition, m.viewport.Height, m.viewport.YOffset)
+		info += fmt.Sprintf("CursorPos: %d, Height: %d, Offset: %d\n", m.cursorPosition, m.viewport.Height, m.viewport.YOffset)
 	}
 
 	infoCentered := lipgloss.JoinHorizontal(lipgloss.Center, info)
-
 	return infoCentered + helpView
 }
 
 func (m Model) GetContent() string {
 	switch m.mode {
 	case ShowDescription:
-		return m.currentTorrent.Description
+		return m.getCurrentTorrent().Description
 	case ShowFiles:
 		return m.GetTorrentFilesTable()
 	case Search:
@@ -375,14 +397,14 @@ func (m Model) GetSearchContent() string {
 }
 
 func (m Model) GetTorrentFilesTable() string {
-	nameLength := getMaxFileNameLength(m.currentTorrent.Files)
+	nameLength := getMaxFileNameLength(m.getCurrentTorrent().Files)
 	nameLenghtAsString := strconv.Itoa(nameLength)
 	// table header
 	// the Name column with is variable, it is as wide as the longest name
 	s := fmt.Sprintf("%3s %"+nameLenghtAsString+"s %9s\n", "No.", "Name", "Size")
 
 	// Iterate over our choices
-	for i, choice := range m.currentTorrent.Files {
+	for i, choice := range m.getCurrentTorrent().Files {
 		s += fmt.Sprintf("%3d %"+nameLenghtAsString+"s %9s\n", i, choice.Name, choice.GetPrettySize())
 	}
 	return s
@@ -440,9 +462,36 @@ func (m *Model) copyMagnetLinkToClipBoard(torrent interfaces.Torrent) {
 	}
 }
 
+func cmdDownloadTorrentFile(m Model) tea.Cmd {
+	return func() tea.Msg {
+		url := fmt.Sprintf("http://itorrents.org/torrent/%s.torrent", m.getCurrentTorrent().InfoHash)
+		result, err := http.Get(url)
+		if err != nil {
+			return errMsg{err}
+		}
+		defer result.Body.Close()
+
+		fileName := fmt.Sprintf("%s%s.torrent", m.downloadLocation, m.getCurrentTorrent().Title)
+		file, err := os.Create(fileName)
+		if err != nil {
+			return errMsg{err}
+		}
+		defer file.Close()
+		_, err = io.Copy(file, result.Body)
+		if err != nil {
+			return errMsg{err}
+		}
+		return statusMsg{"Downloaded file: " + fileName}
+	}
+}
+
 func visitMagnetLink(torrent interfaces.Torrent) {
 	err := browser.OpenURL(torrent.MagnetLink)
 	if err != nil {
 		fmt.Println("error")
 	}
+}
+
+func (m *Model) getCurrentTorrent() *interfaces.Torrent {
+	return &m.torrents[m.cursorPosition]
 }

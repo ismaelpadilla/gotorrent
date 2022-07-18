@@ -80,6 +80,7 @@ func (p pirateBayTorrent) convert() interfaces.Torrent {
 	return interfaces.Torrent{
 		ID:         p.ID,
 		Title:      p.Name,
+		InfoHash:   p.InfoHash,
 		MagnetLink: magnetLink,
 		Size:       size,
 		Uploaded:   p.Added,

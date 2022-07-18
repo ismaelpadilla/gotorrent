@@ -6,6 +6,7 @@ type listKeyMap struct {
 	Up              key.Binding
 	Down            key.Binding
 	Enter           key.Binding
+	DownloadTorrent key.Binding
 	CopyMagnetLink  key.Binding
 	ShowDescription key.Binding
 	ShowFiles       key.Binding
@@ -24,8 +25,8 @@ func (k listKeyMap) ShortHelp() []key.Binding {
 // key.Map interface.
 func (k listKeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
-		{k.Up, k.Down, k.Enter, k.Search},                  // first column
-		{k.CopyMagnetLink, k.ShowDescription, k.ShowFiles}, // second column
+		{k.Up, k.Down, k.Enter, k.Search},                                     // first column
+		{k.DownloadTorrent, k.CopyMagnetLink, k.ShowDescription, k.ShowFiles}, // second column
 		{k.Help, k.Quit}, // third column
 	}
 }
@@ -42,6 +43,10 @@ var listKeys = listKeyMap{
 	Enter: key.NewBinding(
 		key.WithKeys("enter"),
 		key.WithHelp("enter", "get torrent"),
+	),
+	DownloadTorrent: key.NewBinding(
+		key.WithKeys("t"),
+		key.WithHelp("t", "download .torrent"),
 	),
 	CopyMagnetLink: key.NewBinding(
 		key.WithKeys("c"),

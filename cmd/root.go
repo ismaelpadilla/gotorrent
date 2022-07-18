@@ -13,6 +13,7 @@ import (
 
 var Debug bool
 var Persist bool
+var DownloadFolder string
 
 var rootCmd = &cobra.Command{
 	Use:   "gotorrent <query>",
@@ -25,10 +26,16 @@ var rootCmd = &cobra.Command{
 
 		torrents := client.Search(query)
 
+		// DownloadLocation represents a folder, it should end with "/"
+		if DownloadFolder != "" && !strings.HasSuffix(DownloadFolder, "/") {
+			DownloadFolder = DownloadFolder + "/"
+		}
+
 		config := ui.Config{
-			Client:  client,
-			Persist: Persist,
-			Debug:   Debug,
+			Client:         client,
+			Persist:        Persist,
+			DownloadFolder: DownloadFolder,
+			Debug:          Debug,
 		}
 
 		p := tea.NewProgram(ui.InitialModel(torrents, config),
@@ -45,6 +52,7 @@ var rootCmd = &cobra.Command{
 func Execute() {
 	rootCmd.PersistentFlags().BoolVarP(&Debug, "debug", "d", false, "show debug information")
 	rootCmd.PersistentFlags().BoolVarP(&Persist, "persist", "p", false, "keep gotorrent open after selecting torrent")
+	rootCmd.PersistentFlags().StringVarP(&DownloadFolder, "download-folder", "f", "", "folder where files are downloaded")
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)

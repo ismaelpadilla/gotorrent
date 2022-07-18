@@ -7,6 +7,7 @@ type Torrent struct {
 	ID          string
 	Title       string
 	Description string
+	InfoHash    string
 	Files       []TorrentFile
 	MagnetLink  string
 	Size        int
