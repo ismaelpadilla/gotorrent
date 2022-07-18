@@ -9,6 +9,7 @@ type listKeyMap struct {
 	CopyMagnetLink  key.Binding
 	ShowDescription key.Binding
 	ShowFiles       key.Binding
+	Search          key.Binding
 	Help            key.Binding
 	Quit            key.Binding
 }
@@ -23,9 +24,9 @@ func (k listKeyMap) ShortHelp() []key.Binding {
 // key.Map interface.
 func (k listKeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
-		{k.Up, k.Down, k.Enter},                            // first column
+		{k.Up, k.Down, k.Enter, k.Search},                  // first column
 		{k.CopyMagnetLink, k.ShowDescription, k.ShowFiles}, // second column
-		{k.Help, k.Quit},                                   // third column
+		{k.Help, k.Quit}, // third column
 	}
 }
 
@@ -53,6 +54,10 @@ var listKeys = listKeyMap{
 	ShowFiles: key.NewBinding(
 		key.WithKeys("f"),
 		key.WithHelp("f", "show files"),
+	),
+	Search: key.NewBinding(
+		key.WithKeys("s"),
+		key.WithHelp("s", "search"),
 	),
 	Help: key.NewBinding(
 		key.WithKeys("?"),

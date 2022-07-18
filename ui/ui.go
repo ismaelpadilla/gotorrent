@@ -8,6 +8,7 @@ import (
 
 	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/help"
+	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -20,12 +21,14 @@ var selectedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
 type Mode int
 
 const (
-	List = iota
+	List Mode = iota
 	ShowDescription
 	ShowFiles
+	Search
 )
 
 type Model struct {
+	client         interfaces.Client
 	torrents       []interfaces.Torrent
 	cursorPosition int
 	input          string
@@ -36,34 +39,44 @@ type Model struct {
 	ready          bool
 	mode           Mode
 	currentTorrent interfaces.Torrent
+	searchInput    textinput.Model
 	message        string
 	persist        bool
 	debug          bool
 }
 
-func InitialModel(torrents []interfaces.Torrent, persist bool, debug bool) Model {
+type Config struct {
+	Client  interfaces.Client
+	Persist bool
+	Debug   bool
+}
+
+func InitialModel(torrents []interfaces.Torrent, config Config) Model {
 	choices := make([]string, len(torrents))
 	h := help.New()
 
 	// call h.View to do some initialization that may cause problems if called later
 	h.View(listKeys)
 
+	searchInput := textinput.New()
+
 	for i, t := range torrents {
 		choices[i] = t.Title
 	}
 	return Model{
-		torrents: torrents,
-		mode:     List,
-		keys:     listKeys,
-		help:     h,
-		persist:  persist,
-		debug:    debug,
+		client:      config.Client,
+		torrents:    torrents,
+		mode:        List,
+		keys:        listKeys,
+		help:        h,
+		persist:     config.Persist,
+		searchInput: searchInput,
+		debug:       config.Debug,
 	}
 }
 
 func (m Model) Init() tea.Cmd {
-	// no commands
-	return nil
+	return textinput.Blink
 }
 
 func (m *Model) handleKeyPress(msg tea.KeyMsg) bool {
@@ -109,6 +122,13 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) bool {
 				m.input = m.input[:len(m.input)-1]
 				m.cursorPosition, _ = strconv.Atoi(m.input)
 			}
+
+		// Search for a new torrent
+		case "s":
+			m.searchInput.SetValue("")
+			m.searchInput.Focus()
+			m.keys = searchKeys
+			m.mode = Search
 
 		// Show description
 		case "d":
@@ -161,6 +181,13 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) bool {
 			m.keys = listKeys
 			m.mode = List
 
+		// Search for a new torrent
+		case "s":
+			m.searchInput.SetValue("")
+			m.searchInput.Focus()
+			m.keys = searchKeys
+			m.mode = Search
+
 		// Show description
 		case "d":
 			t := m.torrents[m.cursorPosition]
@@ -208,18 +235,37 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) bool {
 		case "down", "j":
 			m.viewport.LineDown(1)
 		}
+	case Search:
+		switch keyString {
+		case "ctrl+c":
+			return true
+
+		case "esc":
+			m.keys = listKeys
+			m.mode = List
+
+		case "enter":
+			m.torrents = m.client.Search(m.searchInput.Value())
+			m.mode = List
+			m.keys = listKeys
+		}
 	}
 	return false
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	useHighPerformanceRenderer := false
-	var cmds []tea.Cmd
+	var (
+		cmds []tea.Cmd
+		cmd  tea.Cmd
+	)
+
+	m.searchInput, cmd = m.searchInput.Update(msg)
+	cmds = append(cmds, cmd)
 
 	switch msg := msg.(type) {
 	// Is it a key press?
 	case tea.KeyMsg:
-
 		if m.handleKeyPress(msg) {
 			return m, tea.Quit
 		}
@@ -287,6 +333,8 @@ func (m Model) headerView() string {
 		title = m.currentTorrent.Title + "\n"
 	case ShowFiles:
 		title = m.currentTorrent.Title + "files\n"
+	case Search:
+		title = "Enter query and press enter to search, or press esc to go back\n"
 	}
 
 	return title
@@ -315,9 +363,15 @@ func (m Model) GetContent() string {
 		return m.currentTorrent.Description
 	case ShowFiles:
 		return m.GetTorrentFilesTable()
+	case Search:
+		return m.GetSearchContent()
 	default:
 		return m.GetTorrentsTable()
 	}
+}
+
+func (m Model) GetSearchContent() string {
+	return m.searchInput.View()
 }
 
 func (m Model) GetTorrentFilesTable() string {

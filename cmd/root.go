@@ -25,7 +25,13 @@ var rootCmd = &cobra.Command{
 
 		torrents := client.Search(query)
 
-		p := tea.NewProgram(ui.InitialModel(torrents, Persist, Debug),
+		config := ui.Config{
+			Client:  client,
+			Persist: Persist,
+			Debug:   Debug,
+		}
+
+		p := tea.NewProgram(ui.InitialModel(torrents, config),
 			tea.WithAltScreen(),
 		)
 

@@ -9,6 +9,7 @@ type descriptionKeyMap struct {
 	CopyMagnetLink key.Binding
 	ShowFiles      key.Binding
 	GoBack         key.Binding
+	Search         key.Binding
 	Help           key.Binding
 	Quit           key.Binding
 }
@@ -23,9 +24,9 @@ func (k descriptionKeyMap) ShortHelp() []key.Binding {
 // key.Map interface.
 func (k descriptionKeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
-		{k.Up, k.Down, k.Enter},                   // first column
-		{k.CopyMagnetLink, k.ShowFiles, k.GoBack}, // second column
-		{k.GoBack, k.Quit},                        // third column
+		{k.Up, k.Down, k.Enter, k.Search}, // first column
+		{k.CopyMagnetLink, k.ShowFiles},   // second column
+		{k.Help, k.GoBack, k.Quit},        // third column
 	}
 }
 
@@ -53,6 +54,10 @@ var descriptionKeys = descriptionKeyMap{
 	GoBack: key.NewBinding(
 		key.WithKeys("q", "esc"),
 		key.WithHelp("q", "go back"),
+	),
+	Search: key.NewBinding(
+		key.WithKeys("s"),
+		key.WithHelp("s", "search"),
 	),
 	Help: key.NewBinding(
 		key.WithKeys("?"),
