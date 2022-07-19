@@ -260,6 +260,7 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) (bool, tea.Cmd) {
 			m.mode = List
 
 		case "enter":
+			m.cursorPosition = 0
 			m.torrents = m.client.Search(m.searchInput.Value())
 			m.mode = List
 			m.keys = listKeys
