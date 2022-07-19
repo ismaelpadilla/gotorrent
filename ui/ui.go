@@ -135,7 +135,7 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) (bool, tea.Cmd) {
 		// Search for a new torrent
 		case "s":
 			m.searchInput.SetValue("")
-			m.searchInput.Focus()
+			cmd = m.searchInput.Focus()
 			m.keys = searchKeys
 			m.mode = Search
 
@@ -196,7 +196,7 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) (bool, tea.Cmd) {
 		// Search for a new torrent
 		case "s":
 			m.searchInput.SetValue("")
-			m.searchInput.Focus()
+			cmd = m.searchInput.Focus()
 			m.keys = searchKeys
 			m.mode = Search
 
@@ -333,6 +333,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// This is needed for high-performance rendering only.
 			cmds = append(cmds, viewport.Sync(m.viewport))
 		}
+	default:
+		m.viewport.SetContent(m.GetContent())
 	}
 
 	// adjust viewport if cursor position isn't visible
