@@ -16,7 +16,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/ismaelpadilla/gotorrent/interfaces"
-	"github.com/pkg/browser"
+	"github.com/skratchdot/open-golang/open"
 )
 
 var selectedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
@@ -173,6 +173,10 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) (bool, tea.Cmd) {
 			m.message = "Downloading .torrent"
 			cmd = cmdDownloadTorrentFile(*m)
 
+		// Navigate to torrent
+		case "g":
+			go m.getCurrentTorrent().Client.NavigateTo(*m.getCurrentTorrent())
+
 		case "?":
 			m.help.ShowAll = !m.help.ShowAll
 
@@ -232,6 +236,10 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) (bool, tea.Cmd) {
 		case "t":
 			m.message = "Downloading .torrent"
 			cmd = cmdDownloadTorrentFile(*m)
+
+		// Navigate to torrent
+		case "g":
+			go m.getCurrentTorrent().Client.NavigateTo(*m.getCurrentTorrent())
 
 		case "?":
 			m.help.ShowAll = !m.help.ShowAll
@@ -489,7 +497,7 @@ func cmdDownloadTorrentFile(m Model) tea.Cmd {
 }
 
 func visitMagnetLink(torrent interfaces.Torrent) {
-	err := browser.OpenURL(torrent.MagnetLink)
+	err := open.Run(torrent.MagnetLink)
 	if err != nil {
 		fmt.Println("error")
 	}

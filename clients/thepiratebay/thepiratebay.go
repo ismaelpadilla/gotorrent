@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/ismaelpadilla/gotorrent/interfaces"
+	"github.com/skratchdot/open-golang/open"
 )
 
 type pirateBayTorrent struct {
@@ -89,6 +90,14 @@ func (p pirateBayTorrent) convert() interfaces.Torrent {
 	}
 }
 
+func (p pirateBay) NavigateTo(torrent interfaces.Torrent) {
+	url := p.GetProxy() + "/description.php?id=" + torrent.ID
+	err := open.Run(url)
+	if err != nil {
+		log.Panic(err)
+	}
+}
+
 func (p pirateBay) FetchTorrentDescription(torrent interfaces.Torrent) string {
 	url := "https://apibay.org/t.php?id=" + torrent.ID
 	result, err := http.Get(url)
@@ -134,4 +143,10 @@ func (p pirateBay) FetchTorrentFiles(torrent interfaces.Torrent) []interfaces.To
 		}
 	}
 	return torrentFiles
+}
+
+// get a valid proxy
+func (p pirateBay) GetProxy() string {
+	// TODO
+	return "https://thepiratebay.org"
 }
