@@ -74,8 +74,8 @@ func loadConfig() {
 		panic(err)
 	}
 
-	viper.AddConfigPath("$HOME/.config/gotorrent/")
 	viper.AddConfigPath(".")
+	viper.AddConfigPath("$HOME/.config/gotorrent/")
 
 	viper.SetConfigName("config")
 	viper.SetConfigType("toml")
