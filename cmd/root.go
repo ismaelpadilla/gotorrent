@@ -9,6 +9,7 @@ import (
 	"github.com/ismaelpadilla/gotorrent/clients/thepiratebay"
 	"github.com/ismaelpadilla/gotorrent/ui"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var Debug bool
@@ -20,6 +21,8 @@ var rootCmd = &cobra.Command{
 	Short: "gotorrent is a TUI for searching torrents in ThePirateBay",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
+		DownloadFolder = viper.GetString("download-folder")
+
 		query := strings.Join(args, " ")
 
 		client := thepiratebay.New()
@@ -50,11 +53,38 @@ var rootCmd = &cobra.Command{
 }
 
 func Execute() {
-	rootCmd.PersistentFlags().BoolVarP(&Debug, "debug", "d", false, "show debug information")
-	rootCmd.PersistentFlags().BoolVarP(&Persist, "persist", "p", false, "keep gotorrent open after selecting torrent")
-	rootCmd.PersistentFlags().StringVarP(&DownloadFolder, "download-folder", "f", "", "folder where files are downloaded")
+	setFlags()
+	loadConfig()
+
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
+	}
+}
+
+func setFlags() {
+	rootCmd.Flags().BoolVarP(&Debug, "debug", "d", false, "show debug information")
+	rootCmd.Flags().BoolVarP(&Persist, "persist", "p", false, "keep gotorrent open after selecting torrent")
+	rootCmd.Flags().StringVarP(&DownloadFolder, "download-folder", "f", "", "folder where files are downloaded")
+}
+
+func loadConfig() {
+	err := viper.BindPFlag("download-folder", rootCmd.Flags().Lookup("download-folder"))
+	if err != nil {
+		panic(err)
+	}
+
+	viper.AddConfigPath("$HOME/.config/gotorrent/")
+	viper.AddConfigPath(".")
+
+	viper.SetConfigName("config")
+	viper.SetConfigType("toml")
+
+	err = viper.ReadInConfig()
+	if err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+			// Config file was found but some other error was produced
+			panic(err)
+		}
 	}
 }
