@@ -71,7 +71,7 @@ Only one configuration key can be set:
 
 ## Configuration file example
 
-```
+```toml
 download-folder = "/home/myUser/torrent"
 ```
 
