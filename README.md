@@ -6,6 +6,8 @@ TUI for searching torrents. You can open a torrent's magnet link in your default
 
 Currently queries ThePirateBay's API.
 
+https://user-images.githubusercontent.com/7772501/180335527-d8a9678f-8e61-429d-bbc3-1a085884059d.mp4
+
 # Installation
 
 ```sh
@@ -50,24 +52,24 @@ gotorrent <query>
 
 Input a number and press enter to navigate to that torrent's magnet link. Or use the `up` and `down` (or `j`/`k`) keys to navigate.
 
-## Configuration
+# Configuration
 
 A configuration file can be used, but flags take precedence over configuration.
 
-### Location
+## Location
 
 A `config` file can be put in the following locations:
 
 - Same folder as the executable.
 - `$HOME/.config/gotorrent/`.
 
-### Config keys
+## Config keys
 
 Only one configuration key can be set:
 
 `download-folder`: Same as the `--download-folder` flag.
 
-### Configuration file example
+## Configuration file example
 
 ```
 download-folder = "/home/myUser/torrent"
