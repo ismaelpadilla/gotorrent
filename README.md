@@ -78,4 +78,4 @@ download-folder = "/home/myUser/torrent"
 
 # Roadmap
 
-The progress towards the first relesase can be tracked in the [v0.1.0 milestone](https://github.com/ismaelpadilla/gotorrent/milestone/1). At this point, all necessary work is done.
+The progress towards the first release can be tracked in the [v0.1.0 milestone](https://github.com/ismaelpadilla/gotorrent/milestone/1). At this point, all necessary work is done.
