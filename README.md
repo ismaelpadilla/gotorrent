@@ -27,14 +27,14 @@ go install
 
 ### Install from package
 
-### AUR
+#### AUR
 
 gotorrent is available on the AUR:
 ```
 yay install -S gotorrent
 ```
 
-### Homebrew
+#### Homebrew
 
 ```
 brew install ismaelpadilla/tap/gotorrent
