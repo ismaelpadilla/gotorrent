@@ -58,7 +58,7 @@ aurs:
     git_url: 'ssh://aur@aur.archlinux.org/gotorrent-bin.git'
     package: |-
       # bin
-      install -Dm755 "./mybin" "${pkgdir}/usr/bin/mybin"
+      install -Dm755 "./gotorrent" "${pkgdir}/usr/bin/gotorrent"
 
       # license
       install -Dm644 "./LICENSE" "${pkgdir}/usr/share/licenses/mybin/LICENSE"
