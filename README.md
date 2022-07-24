@@ -1,6 +1,8 @@
 # gotorrent
 
+[![version](https://img.shields.io/github/v/release/ismaelpadilla/gotorrent)](https://github.com/ismaelpadilla/gotorrent/releases)
 [![golangci-lint](https://github.com/ismaelpadilla/gotorrent/actions/workflows/golangci-lint.yml/badge.svg)](https://github.com/ismaelpadilla/gotorrent/actions/workflows/golangci-lint.yml)
+
 
 TUI for searching torrents. You can open a torrent's magnet link in your default app, or download its .torrent file. This app does not handle leeching/seeding a torrent.
 
@@ -10,6 +12,7 @@ https://user-images.githubusercontent.com/7772501/180335527-d8a9678f-8e61-429d-b
 
 # Installation
 
+## Using go
 ```sh
 go install github.com/ismaelpadilla/gotorrent@latest
 ```
@@ -20,6 +23,21 @@ Alternatively, you can clone the repo:
 git clone https://github.com/ismaelpadilla/gotorrent
 cd gotorrent
 go install
+```
+
+### Install from package
+
+### AUR
+
+gotorrent is available on the AUR:
+```
+yay install -S gotorrent
+```
+
+### Homebrew
+
+```
+brew install ismaelpadilla/tap/gotorrent
 ```
 
 # Usage:
@@ -78,4 +96,10 @@ download-folder = "/home/myUser/torrent"
 
 # Roadmap
 
-The progress towards the first release can be tracked in the [v0.1.0 milestone](https://github.com/ismaelpadilla/gotorrent/milestone/1). At this point, all necessary work is done.
+Work on the [v0.1.0 milestone](https://github.com/ismaelpadilla/gotorrent/milestone/1) has been completed and the first version has been officially released.
+
+Currenlty work is being done on:
+- Code cleanup
+- Bugfixes
+- QoL things
+- Potentially adding new clients to search torrents from other sources
