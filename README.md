@@ -31,7 +31,7 @@ go install
 
 gotorrent is available on the AUR:
 ```
-yay install -S gotorrent
+yay -S gotorrent
 ```
 
 #### Homebrew
