@@ -11,28 +11,6 @@ import (
 	"github.com/skratchdot/open-golang/open"
 )
 
-type pirateBayTorrent struct {
-	ID       string
-	Name     string
-	Descr    string
-	InfoHash string `json:"info_hash"`
-	Leechers string
-	Seeders  string
-	Size     string
-	Added    string
-}
-
-type pirateBayTorrentDetails struct {
-	Descr string
-}
-
-type pirateBayTorrentFile struct {
-	Name []string
-	Size []int
-}
-
-type pirateBay struct{}
-
 func New() interfaces.Client {
 	return pirateBay{}
 }
@@ -62,7 +40,6 @@ func (p pirateBay) Search(a string) []interfaces.Torrent {
 	return torrents
 }
 
-//
 func (p pirateBayTorrent) convert() interfaces.Torrent {
 	magnetLink := "magnet:?xt=urn:btih:" + p.InfoHash
 	size, err := strconv.Atoi(p.Size)
@@ -91,7 +68,7 @@ func (p pirateBayTorrent) convert() interfaces.Torrent {
 }
 
 func (p pirateBay) NavigateTo(torrent interfaces.Torrent) {
-	url := p.GetProxy() + "/description.php?id=" + torrent.ID
+	url := p.getProxy() + "/description.php?id=" + torrent.ID
 	err := open.Run(url)
 	if err != nil {
 		log.Panic(err)
@@ -146,7 +123,7 @@ func (p pirateBay) FetchTorrentFiles(torrent interfaces.Torrent) []interfaces.To
 }
 
 // get a valid proxy
-func (p pirateBay) GetProxy() string {
+func (p pirateBay) getProxy() string {
 	// TODO
 	return "https://thepiratebay.org"
 }

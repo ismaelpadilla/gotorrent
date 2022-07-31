@@ -1,4 +1,4 @@
-package ui
+package keys
 
 import "github.com/charmbracelet/bubbles/key"
 
@@ -25,21 +25,9 @@ func (k searchKeyMap) FullHelp() [][]key.Binding {
 	}
 }
 
-var searchKeys = searchKeyMap{
-	Enter: key.NewBinding(
-		key.WithKeys("enter"),
-		key.WithHelp("enter", "search"),
-	),
-	GoBack: key.NewBinding(
-		key.WithKeys("q", "esc"),
-		key.WithHelp("q", "go back"),
-	),
-	Help: key.NewBinding(
-		key.WithKeys("?"),
-		key.WithHelp("?", "toggle help"),
-	),
-	Quit: key.NewBinding(
-		key.WithKeys("ctrl+c"),
-		key.WithHelp("ctrl+c", "quit"),
-	),
+var SearchKeys = searchKeyMap{
+	Enter:  allKeys.SearchEnter,
+	GoBack: allKeys.GoBackQEsc,
+	Help:   allKeys.Help,
+	Quit:   allKeys.CtrlC,
 }

@@ -16,54 +16,18 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/ismaelpadilla/gotorrent/interfaces"
+	"github.com/ismaelpadilla/gotorrent/ui/keys"
 	"github.com/skratchdot/open-golang/open"
 )
 
 var selectedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
-
-type Mode int
-
-const (
-	List Mode = iota
-	ShowDescription
-	ShowFiles
-	Search
-)
-
-type Model struct {
-	client           interfaces.Client
-	torrents         []interfaces.Torrent
-	downloadLocation string
-	cursorPosition   int
-	input            string
-	keys             help.KeyMap
-	help             help.Model
-	viewport         viewport.Model
-	height           int
-	ready            bool
-	mode             Mode
-	searchInput      textinput.Model
-	message          string
-	persist          bool
-	debug            bool
-}
-
-type Config struct {
-	Client         interfaces.Client
-	Persist        bool
-	DownloadFolder string
-	Debug          bool
-}
-
-type errMsg struct{ err error }
-type statusMsg struct{ message string }
 
 func InitialModel(torrents []interfaces.Torrent, config Config) Model {
 	choices := make([]string, len(torrents))
 	h := help.New()
 
 	// call h.View to do some initialization that may cause problems if called later
-	h.View(listKeys)
+	h.View(keys.ListKeys)
 
 	searchInput := textinput.New()
 
@@ -75,7 +39,7 @@ func InitialModel(torrents []interfaces.Torrent, config Config) Model {
 		torrents:         torrents,
 		downloadLocation: config.DownloadFolder,
 		mode:             List,
-		keys:             listKeys,
+		keys:             keys.ListKeys,
 		help:             h,
 		persist:          config.Persist,
 		searchInput:      searchInput,
@@ -136,7 +100,7 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) (bool, tea.Cmd) {
 		case "s":
 			m.searchInput.SetValue("")
 			cmd = m.searchInput.Focus()
-			m.keys = searchKeys
+			m.keys = keys.SearchKeys
 			m.mode = Search
 
 		// Show description
@@ -145,7 +109,7 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) (bool, tea.Cmd) {
 			if t.Description == "" {
 				t.Description = t.FetchDescription()
 			}
-			m.keys = descriptionKeys
+			m.keys = keys.DescriptionKeys
 			m.mode = ShowDescription
 
 		// Show files
@@ -154,7 +118,7 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) (bool, tea.Cmd) {
 			if t.Files == nil {
 				t.Files = t.FetchFiles()
 			}
-			m.keys = filesKeys
+			m.keys = keys.FilesKeys
 			m.mode = ShowFiles
 
 		// Copy magnet link to clipboard
@@ -194,14 +158,14 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) (bool, tea.Cmd) {
 			return true, nil
 
 		case "q", "esc":
-			m.keys = listKeys
+			m.keys = keys.ListKeys
 			m.mode = List
 
 		// Search for a new torrent
 		case "s":
 			m.searchInput.SetValue("")
 			cmd = m.searchInput.Focus()
-			m.keys = searchKeys
+			m.keys = keys.SearchKeys
 			m.mode = Search
 
 		// Show description
@@ -210,7 +174,7 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) (bool, tea.Cmd) {
 			if t.Description == "" {
 				t.Description = t.FetchDescription()
 			}
-			m.keys = descriptionKeys
+			m.keys = keys.DescriptionKeys
 			m.mode = ShowDescription
 
 		// Show files
@@ -219,7 +183,7 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) (bool, tea.Cmd) {
 			if t.Files == nil {
 				t.Files = t.FetchFiles()
 			}
-			m.keys = filesKeys
+			m.keys = keys.FilesKeys
 			m.mode = ShowFiles
 
 		// Copy magnet link to clipboard
@@ -264,14 +228,14 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) (bool, tea.Cmd) {
 			return true, nil
 
 		case "esc":
-			m.keys = listKeys
+			m.keys = keys.ListKeys
 			m.mode = List
 
 		case "enter":
 			m.cursorPosition = 0
 			m.torrents = m.client.Search(m.searchInput.Value())
 			m.mode = List
-			m.keys = listKeys
+			m.keys = keys.ListKeys
 		}
 	}
 	return false, cmd
