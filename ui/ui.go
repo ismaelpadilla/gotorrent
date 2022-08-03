@@ -51,19 +51,78 @@ func (m Model) Init() tea.Cmd {
 	return textinput.Blink
 }
 
+func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var (
+		cmds []tea.Cmd
+		cmd  tea.Cmd
+	)
+
+	m.searchInput, cmd = m.searchInput.Update(msg)
+	cmds = append(cmds, cmd)
+
+	switch msg := msg.(type) {
+	case statusMsg:
+		m.message = msg.message
+	case errMsg:
+		m.message = msg.err.Error()
+	case tea.KeyMsg:
+		shouldQuit, cmd := m.handleKeyPress(msg)
+		if shouldQuit {
+			return m, tea.Quit
+		}
+		if cmd != nil {
+			cmds = append(cmds, cmd)
+		}
+
+		m.viewport.SetContent(m.GetContent())
+
+	case tea.WindowSizeMsg:
+		headerHeight := lipgloss.Height(m.headerView())
+		footerHeight := lipgloss.Height(m.footerView())
+		verticalMarginHeight := headerHeight + footerHeight
+		m.height = msg.Height
+		m.help.Width = msg.Width
+
+		if !m.ready {
+			// Since this program is using the full size of the viewport we
+			// need to wait until we've received the window dimensions before
+			// we can initialize the viewport. The initial dimensions come in
+			// quickly, though asynchronously, which is why we wait for them
+			// here.
+			m.viewport = viewport.New(msg.Width, msg.Height-verticalMarginHeight)
+			m.viewport.YPosition = headerHeight
+			m.viewport.SetContent(m.GetContent())
+			m.ready = true
+		} else {
+			m.viewport.Width = msg.Width
+			m.viewport.Height = msg.Height - verticalMarginHeight
+		}
+	default:
+		m.viewport.SetContent(m.GetContent())
+	}
+
+	// adjust viewport if cursor position isn't visible
+	// -1 because of the header line
+	if m.cursorPosition < m.viewport.YOffset-1 {
+		m.viewport.LineUp(m.viewport.YOffset - m.cursorPosition - 1)
+	}
+	if m.cursorPosition > m.viewport.Height+m.viewport.YOffset-2 {
+		m.viewport.LineDown(m.cursorPosition - m.viewport.Height - m.viewport.YOffset + 2)
+	}
+
+	return m, tea.Batch(cmds...)
+}
+
 func (m *Model) handleKeyPress(msg tea.KeyMsg) (bool, tea.Cmd) {
 	var cmd tea.Cmd
 	m.message = ""
 	keyString := msg.String()
 	switch m.mode {
 	case List:
-		// Which key was pressed?
 		switch keyString {
-		// These keys should exit the program.
 		case "ctrl+c", "q", "esc":
 			return true, nil
 
-		// The "up" and "k" keys move the cursor up
 		case "up", "k":
 			m.input = ""
 			if m.cursorPosition > 0 {
@@ -72,7 +131,6 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) (bool, tea.Cmd) {
 				m.cursorPosition = 0
 			}
 
-		// The "down" and "j" keys move the cursor down
 		case "down", "j":
 			m.input = ""
 			if m.cursorPosition < len(m.torrents)-1 {
@@ -96,59 +154,32 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) (bool, tea.Cmd) {
 				m.cursorPosition, _ = strconv.Atoi(m.input)
 			}
 
-		// Search for a new torrent
 		case "s":
-			m.searchInput.SetValue("")
-			cmd = m.searchInput.Focus()
-			m.keys = keys.SearchKeys
-			m.mode = Search
+			cmd = m.enterSearchMode()
 
-		// Show description
 		case "d":
-			t := m.getCurrentTorrent()
-			if t.Description == "" {
-				t.Description = t.FetchDescription()
-			}
-			m.keys = keys.DescriptionKeys
-			m.mode = ShowDescription
+			m.showDescription()
 
-		// Show files
 		case "f":
-			t := m.getCurrentTorrent()
-			if t.Files == nil {
-				t.Files = t.FetchFiles()
-			}
-			m.keys = keys.FilesKeys
-			m.mode = ShowFiles
+			m.showFiles()
 
-		// Copy magnet link to clipboard
 		case "c":
-			m.copyMagnetLinkToClipBoard(m.torrents[m.cursorPosition])
+			m.copyMagnetLinkToClipBoard()
 
-		// Enter navigates to magnet link
 		case "enter":
 			go visitMagnetLink(m.torrents[m.cursorPosition])
 			if !m.persist {
 				return true, nil
 			}
 
-		// Download torrent file
 		case "t":
-			m.message = "Downloading .torrent"
-			cmd = cmdDownloadTorrentFile(*m)
+			cmd = m.downloadTorrent()
 
-		// Navigate to torrent
 		case "g":
 			go m.getCurrentTorrent().Client.NavigateTo(*m.getCurrentTorrent())
 
 		case "?":
-			m.help.ShowAll = !m.help.ShowAll
-
-			// adjust viewport, since toggling help changes footer size
-			headerHeight := lipgloss.Height(m.headerView())
-			footerHeight := lipgloss.Height(m.footerView())
-			verticalMarginHeight := headerHeight + footerHeight
-			m.viewport.Height = m.height - verticalMarginHeight
+			m.toggleHelp()
 		}
 
 		m.viewport.SetContent(m.GetContent())
@@ -161,34 +192,17 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) (bool, tea.Cmd) {
 			m.keys = keys.ListKeys
 			m.mode = List
 
-		// Search for a new torrent
 		case "s":
-			m.searchInput.SetValue("")
-			cmd = m.searchInput.Focus()
-			m.keys = keys.SearchKeys
-			m.mode = Search
+			cmd = m.enterSearchMode()
 
-		// Show description
 		case "d":
-			t := m.getCurrentTorrent()
-			if t.Description == "" {
-				t.Description = t.FetchDescription()
-			}
-			m.keys = keys.DescriptionKeys
-			m.mode = ShowDescription
+			m.showDescription()
 
-		// Show files
 		case "f":
-			t := m.getCurrentTorrent()
-			if t.Files == nil {
-				t.Files = t.FetchFiles()
-			}
-			m.keys = keys.FilesKeys
-			m.mode = ShowFiles
+			m.showFiles()
 
-		// Copy magnet link to clipboard
 		case "c":
-			m.copyMagnetLinkToClipBoard(m.torrents[m.cursorPosition])
+			m.copyMagnetLinkToClipBoard()
 
 		case "enter":
 			go visitMagnetLink(m.torrents[m.cursorPosition])
@@ -196,29 +210,18 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) (bool, tea.Cmd) {
 				return true, nil
 			}
 
-		// Download torrent file
 		case "t":
-			m.message = "Downloading .torrent"
-			cmd = cmdDownloadTorrentFile(*m)
+			cmd = m.downloadTorrent()
 
-		// Navigate to torrent
 		case "g":
 			go m.getCurrentTorrent().Client.NavigateTo(*m.getCurrentTorrent())
 
 		case "?":
-			m.help.ShowAll = !m.help.ShowAll
+			m.toggleHelp()
 
-			// adjust viewport, since toggling help changes footer size
-			headerHeight := lipgloss.Height(m.headerView())
-			footerHeight := lipgloss.Height(m.footerView())
-			verticalMarginHeight := headerHeight + footerHeight
-			m.viewport.Height = m.height - verticalMarginHeight
-
-		// The "up" and "k" keys scroll up
 		case "up", "k":
 			m.viewport.LineUp(1)
 
-		// The "down" and "j" keys scroll down
 		case "down", "j":
 			m.viewport.LineDown(1)
 		}
@@ -241,88 +244,7 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) (bool, tea.Cmd) {
 	return false, cmd
 }
 
-func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	useHighPerformanceRenderer := false
-	var (
-		cmds []tea.Cmd
-		cmd  tea.Cmd
-	)
-
-	m.searchInput, cmd = m.searchInput.Update(msg)
-	cmds = append(cmds, cmd)
-
-	switch msg := msg.(type) {
-	case statusMsg:
-		m.message = msg.message
-	case errMsg:
-		m.message = msg.err.Error()
-	// Is it a key press?
-	case tea.KeyMsg:
-		shouldQuit, cmd := m.handleKeyPress(msg)
-		if shouldQuit {
-			return m, tea.Quit
-		}
-		if cmd != nil {
-			cmds = append(cmds, cmd)
-		}
-
-		m.viewport.SetContent(m.GetContent())
-
-	case tea.WindowSizeMsg:
-		headerHeight := lipgloss.Height(m.headerView())
-		footerHeight := lipgloss.Height(m.footerView())
-		verticalMarginHeight := headerHeight + footerHeight
-
-		if !m.ready {
-			// Since this program is using the full size of the viewport we
-			// need to wait until we've received the window dimensions before
-			// we can initialize the viewport. The initial dimensions come in
-			// quickly, though asynchronously, which is why we wait for them
-			// here.
-			m.viewport = viewport.New(msg.Width, msg.Height-verticalMarginHeight)
-			m.height = msg.Height
-			m.viewport.YPosition = headerHeight
-			m.viewport.HighPerformanceRendering = useHighPerformanceRenderer
-			m.help.Width = msg.Width
-			m.viewport.SetContent(m.GetContent())
-			m.ready = true
-
-			// This is only necessary for high performance rendering, which in
-			// most cases you won't need.
-			//
-			// Render the viewport one line below the header.
-			// m.viewport.YPosition = headerHeight
-		} else {
-			m.height = msg.Height
-			m.viewport.Width = msg.Width
-			m.viewport.Height = msg.Height - verticalMarginHeight
-		}
-		// m.help.Width = msg.Width
-
-		if useHighPerformanceRenderer {
-			// Render (or re-render) the whole viewport. Necessary both to
-			// initialize the viewport and when the window is resized.
-			//
-			// This is needed for high-performance rendering only.
-			cmds = append(cmds, viewport.Sync(m.viewport))
-		}
-	default:
-		m.viewport.SetContent(m.GetContent())
-	}
-
-	// adjust viewport if cursor position isn't visible
-	// -1 because of the header line
-	if m.cursorPosition < m.viewport.YOffset-1 {
-		m.viewport.LineUp(m.viewport.YOffset - m.cursorPosition - 1)
-	}
-	if m.cursorPosition > m.viewport.Height+m.viewport.YOffset-2 {
-		m.viewport.LineDown(m.cursorPosition - m.viewport.Height - m.viewport.YOffset + 2)
-	}
-	// vp, cmd := m.viewport.Update(msg)
-	return m, tea.Batch(cmds...)
-}
-
-func (m Model) headerView() string {
+func (m *Model) headerView() string {
 	var title string
 	switch m.mode {
 	case List:
@@ -338,14 +260,13 @@ func (m Model) headerView() string {
 	return title
 }
 
-func (m Model) footerView() string {
+func (m *Model) footerView() string {
 	info := "\nInput torrent number: "
 	info += selectedStyle.Render(m.input) + "\n"
 	info += m.message + "\n"
 
 	helpView := m.help.View(m.keys)
 
-	// debug info
 	if m.debug {
 		info += fmt.Sprintf("CursorPos: %d, Height: %d, Offset: %d\n", m.cursorPosition, m.viewport.Height, m.viewport.YOffset)
 	}
@@ -354,7 +275,7 @@ func (m Model) footerView() string {
 	return infoCentered + helpView
 }
 
-func (m Model) GetContent() string {
+func (m *Model) GetContent() string {
 	switch m.mode {
 	case ShowDescription:
 		return m.getCurrentTorrent().Description
@@ -367,31 +288,31 @@ func (m Model) GetContent() string {
 	}
 }
 
-func (m Model) GetSearchContent() string {
+func (m *Model) GetSearchContent() string {
 	return m.searchInput.View()
 }
 
-func (m Model) GetTorrentFilesTable() string {
+func (m *Model) GetTorrentFilesTable() string {
 	nameLength := getMaxFileNameLength(m.getCurrentTorrent().Files)
 	nameLenghtAsString := strconv.Itoa(nameLength)
+
 	// table header
 	// the Name column with is variable, it is as wide as the longest name
 	s := fmt.Sprintf("%3s %"+nameLenghtAsString+"s %9s\n", "No.", "Name", "Size")
 
 	// Iterate over our choices
-	for i, choice := range m.getCurrentTorrent().Files {
-		s += fmt.Sprintf("%3d %"+nameLenghtAsString+"s %9s\n", i, choice.Name, choice.GetPrettySize())
+	for i, file := range m.getCurrentTorrent().Files {
+		s += fmt.Sprintf("%3d %"+nameLenghtAsString+"s %9s\n", i, file.Name, file.GetPrettySize())
 	}
 	return s
 }
 
-func (m Model) GetTorrentsTable() string {
+func (m *Model) GetTorrentsTable() string {
 	// table header
 	s := fmt.Sprintf("%s %3s %64s %9s %4s %4s %s\n", " ", "No.", "Title", "Size", "S", "L", "Uploaded")
 
-	// Iterate over our choices
-	for i, choice := range m.torrents {
-		dateInt, err := strconv.ParseInt(choice.Uploaded, 10, 64)
+	for i, torrent := range m.torrents {
+		dateInt, err := strconv.ParseInt(torrent.Uploaded, 10, 64)
 		var date string
 		if err != nil {
 			date = "err"
@@ -403,9 +324,9 @@ func (m Model) GetTorrentsTable() string {
 		cursor := " "
 		if m.cursorPosition == i {
 			cursor = ">"
-			s += selectedStyle.Render(fmt.Sprintf("%s %3d %64s %9s %4d %4d %s", cursor, i, choice.Title, choice.GetPrettySize(), choice.Seeders, choice.Leechers, date)) + "\n"
+			s += selectedStyle.Render(fmt.Sprintf("%s %3d %64s %9s %4d %4d %s", cursor, i, torrent.Title, torrent.GetPrettySize(), torrent.Seeders, torrent.Leechers, date)) + "\n"
 		} else {
-			s += fmt.Sprintf("%s %3d %64s %9s %4d %4d %s\n", cursor, i, choice.Title, choice.GetPrettySize(), choice.Seeders, choice.Leechers, date)
+			s += fmt.Sprintf("%s %3d %64s %9s %4d %4d %s\n", cursor, i, torrent.Title, torrent.GetPrettySize(), torrent.Seeders, torrent.Leechers, date)
 		}
 	}
 	return s
@@ -429,7 +350,8 @@ func (m Model) View() string {
 	return fmt.Sprintf("%s\n%s\n%s", m.headerView(), m.viewport.View(), m.footerView())
 }
 
-func (m *Model) copyMagnetLinkToClipBoard(torrent interfaces.Torrent) {
+func (m *Model) copyMagnetLinkToClipBoard() {
+	torrent := m.torrents[m.cursorPosition]
 	if err := clipboard.WriteAll(torrent.MagnetLink); err != nil {
 		m.message = "Error while copying magnet link to clipboard"
 	} else {
@@ -469,4 +391,46 @@ func visitMagnetLink(torrent interfaces.Torrent) {
 
 func (m *Model) getCurrentTorrent() *interfaces.Torrent {
 	return &m.torrents[m.cursorPosition]
+}
+
+func (m *Model) enterSearchMode() tea.Cmd {
+	m.searchInput.SetValue("")
+	cmd := m.searchInput.Focus()
+	m.keys = keys.SearchKeys
+	m.mode = Search
+
+	return cmd
+}
+
+func (m *Model) showDescription() {
+	t := m.getCurrentTorrent()
+	if t.Description == "" {
+		t.Description = t.FetchDescription()
+	}
+	m.keys = keys.DescriptionKeys
+	m.mode = ShowDescription
+}
+
+func (m *Model) showFiles() {
+	t := m.getCurrentTorrent()
+	if t.Files == nil {
+		t.Files = t.FetchFiles()
+	}
+	m.keys = keys.FilesKeys
+	m.mode = ShowFiles
+}
+
+func (m *Model) downloadTorrent() tea.Cmd {
+	m.message = "Downloading .torrent"
+	return cmdDownloadTorrentFile(*m)
+}
+
+func (m *Model) toggleHelp() {
+	m.help.ShowAll = !m.help.ShowAll
+
+	// adjust viewport, since toggling help changes footer size
+	headerHeight := lipgloss.Height(m.headerView())
+	footerHeight := lipgloss.Height(m.footerView())
+	verticalMarginHeight := headerHeight + footerHeight
+	m.viewport.Height = m.height - verticalMarginHeight
 }
