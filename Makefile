@@ -17,5 +17,5 @@ golangci-lint: fmt
 .PHONY:golangci-lint
 
 build: vet
-	go build hello.go
+	go build main.go
 .PHONY:build
