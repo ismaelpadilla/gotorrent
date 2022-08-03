@@ -21,6 +21,7 @@ func (p pirateBay) Search(a string) []interfaces.Torrent {
 	if err != nil {
 		log.Panic(err)
 	}
+	defer result.Body.Close()
 
 	body, err := io.ReadAll(result.Body)
 	if err != nil {
@@ -81,6 +82,7 @@ func (p pirateBay) FetchTorrentDescription(torrent interfaces.Torrent) string {
 	if err != nil {
 		log.Panic(err)
 	}
+	defer result.Body.Close()
 
 	body, err := io.ReadAll(result.Body)
 	if err != nil {
@@ -101,6 +103,7 @@ func (p pirateBay) FetchTorrentFiles(torrent interfaces.Torrent) []interfaces.To
 	if err != nil {
 		log.Panic(err)
 	}
+	defer result.Body.Close()
 
 	body, err := io.ReadAll(result.Body)
 	if err != nil {
