@@ -46,6 +46,8 @@ brew install ismaelpadilla/tap/gotorrent
 gotorrent <query>
 ```
 
+Input a number and press enter to navigate to that torrent's magnet link. Or use the `up` and `down` (or `j`/`k`) keys to navigate the torrent list.
+
 ## Keybinds
 
 - `up`/`k`: Scroll up.
@@ -67,8 +69,6 @@ gotorrent <query>
   -h, --help                     help for gotorrent
   -p, --persist                  keep gotorrent open after selecting torrent
 ```
-
-Input a number and press enter to navigate to that torrent's magnet link. Or use the `up` and `down` (or `j`/`k`) keys to navigate.
 
 # Configuration
 
