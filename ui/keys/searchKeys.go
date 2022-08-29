@@ -27,7 +27,7 @@ func (k searchKeyMap) FullHelp() [][]key.Binding {
 
 var SearchKeys = searchKeyMap{
 	Enter:  allKeys.SearchEnter,
-	GoBack: allKeys.GoBackQEsc,
+	GoBack: allKeys.GoBackEsc,
 	Help:   allKeys.Help,
 	Quit:   allKeys.CtrlC,
 }

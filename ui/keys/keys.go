@@ -11,6 +11,7 @@ type keys struct {
 	CopyMagnetLink    key.Binding
 	ShowDescription   key.Binding
 	ShowFiles         key.Binding
+	GoBackEsc         key.Binding
 	GoBackQEsc        key.Binding
 	SearchS           key.Binding
 	SearchEnter       key.Binding
@@ -53,9 +54,13 @@ var allKeys = keys{
 		key.WithKeys("f"),
 		key.WithHelp("f", "show files"),
 	),
+	GoBackEsc: key.NewBinding(
+		key.WithKeys("esc"),
+		key.WithHelp("esc", "go back"),
+	),
 	GoBackQEsc: key.NewBinding(
 		key.WithKeys("q", "esc"),
-		key.WithHelp("q", "go back"),
+		key.WithHelp("q/esc", "go back"),
 	),
 	SearchS: key.NewBinding(
 		key.WithKeys("s"),
