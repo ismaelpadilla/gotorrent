@@ -22,23 +22,28 @@ import (
 
 var selectedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
 
-func InitialModel(torrents []interfaces.Torrent, config Config) Model {
-	choices := make([]string, len(torrents))
+func InitialModel(query string, config Config) Model {
+	var mode Mode
+
+	var torrents []interfaces.Torrent
 	h := help.New()
-
-	// call h.View to do some initialization that may cause problems if called later
-	h.View(keys.ListKeys)
-
 	searchInput := textinput.New()
 
-	for i, t := range torrents {
-		choices[i] = t.Title
+	if query == "" {
+		mode = Search
+		h.View(keys.SearchKeys)
+		searchInput.Focus()
+	} else {
+		mode = List
+		h.View(keys.ListKeys)
+		torrents = config.Client.Search(query)
 	}
+
 	return Model{
 		client:           config.Client,
 		torrents:         torrents,
 		downloadLocation: config.DownloadFolder,
-		mode:             List,
+		mode:             mode,
 		keys:             keys.ListKeys,
 		help:             h,
 		persist:          config.Persist,
@@ -231,8 +236,12 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) (bool, tea.Cmd) {
 			return true, nil
 
 		case "esc":
-			m.keys = keys.ListKeys
-			m.mode = List
+			if len(m.torrents) > 0 {
+				m.keys = keys.ListKeys
+				m.mode = List
+			} else {
+				return true, nil
+			}
 
 		case "enter":
 			m.cursorPosition = 0

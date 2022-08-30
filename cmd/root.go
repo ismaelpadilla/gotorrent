@@ -19,15 +19,12 @@ var DownloadFolder string
 var rootCmd = &cobra.Command{
 	Use:   "gotorrent <query>",
 	Short: "gotorrent is a TUI for searching torrents in ThePirateBay",
-	Args:  cobra.MinimumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
 		DownloadFolder = viper.GetString("download-folder")
 
 		query := strings.Join(args, " ")
 
 		client := thepiratebay.New()
-
-		torrents := client.Search(query)
 
 		// DownloadLocation represents a folder, it should end with "/"
 		if DownloadFolder != "" && !strings.HasSuffix(DownloadFolder, "/") {
@@ -41,7 +38,7 @@ var rootCmd = &cobra.Command{
 			Debug:          Debug,
 		}
 
-		p := tea.NewProgram(ui.InitialModel(torrents, config),
+		p := tea.NewProgram(ui.InitialModel(query, config),
 			tea.WithAltScreen(),
 		)
 
