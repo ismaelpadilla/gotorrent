@@ -5,7 +5,9 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"strconv"
+	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -48,6 +50,7 @@ func InitialModel(query string, config Config) Model {
 		help:             h,
 		persist:          config.Persist,
 		searchInput:      searchInput,
+		visitCommand:     config.VisitCommand,
 		debug:            config.Debug,
 	}
 }
@@ -172,7 +175,7 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) (bool, tea.Cmd) {
 			m.copyMagnetLinkToClipBoard()
 
 		case "enter":
-			go visitMagnetLink(m.torrents[m.cursorPosition])
+			go visitMagnetLink(m.visitCommand, m.torrents[m.cursorPosition])
 			if !m.persist {
 				return true, nil
 			}
@@ -210,7 +213,7 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) (bool, tea.Cmd) {
 			m.copyMagnetLinkToClipBoard()
 
 		case "enter":
-			go visitMagnetLink(m.torrents[m.cursorPosition])
+			go visitMagnetLink(m.visitCommand, m.torrents[m.cursorPosition])
 			if !m.persist {
 				return true, nil
 			}
@@ -391,8 +394,26 @@ func cmdDownloadTorrentFile(m Model) tea.Cmd {
 	}
 }
 
-func visitMagnetLink(torrent interfaces.Torrent) {
-	err := open.Run(torrent.MagnetLink)
+func visitMagnetLink(visitCommand string, torrent interfaces.Torrent) {
+	var err error
+	if visitCommand == "" {
+		err = open.Run(torrent.MagnetLink)
+	} else {
+
+		visitCmd := strings.Fields(visitCommand)
+
+		if !strings.Contains(visitCommand, "%s") {
+			visitCmd = append(visitCmd, "%s")
+		}
+
+		for i, word := range visitCmd {
+			visitCmd[i] = strings.Replace(word, "%s", torrent.MagnetLink, -1)
+		}
+
+		cmd := exec.Command(visitCmd[0], visitCmd[1:]...)
+		cmd.Stdout = os.Stdout
+		err = cmd.Run()
+	}
 	if err != nil {
 		fmt.Println("error")
 	}
