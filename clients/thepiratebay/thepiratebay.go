@@ -43,7 +43,7 @@ func (p pirateBay) Search(a string) []interfaces.Torrent {
 
 func (p pirateBayTorrent) convert() interfaces.Torrent {
 	magnetLink := "magnet:?xt=urn:btih:" + p.InfoHash
-	size, err := strconv.Atoi(p.Size)
+	size, err := strconv.ParseInt(p.Size, 10, 64)
 	if err != nil {
 		log.Panic(err)
 	}
