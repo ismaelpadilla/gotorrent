@@ -10,7 +10,7 @@ type Torrent struct {
 	InfoHash    string
 	Files       []TorrentFile
 	MagnetLink  string
-	Size        int
+	Size        int64
 	Uploaded    string
 	Seeders     int
 	Leechers    int
