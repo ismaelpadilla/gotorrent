@@ -15,12 +15,14 @@ import (
 var Debug bool
 var Persist bool
 var DownloadFolder string
+var VisitCommand string
 
 var rootCmd = &cobra.Command{
 	Use:   "gotorrent <query>",
 	Short: "gotorrent is a TUI for searching torrents in ThePirateBay",
 	Run: func(_ *cobra.Command, args []string) {
 		DownloadFolder = viper.GetString("download-folder")
+		VisitCommand = viper.GetString("visit-command")
 
 		query := strings.Join(args, " ")
 
@@ -35,6 +37,7 @@ var rootCmd = &cobra.Command{
 			Client:         client,
 			Persist:        Persist,
 			DownloadFolder: DownloadFolder,
+			VisitCommand:   VisitCommand,
 			Debug:          Debug,
 		}
 
@@ -63,10 +66,16 @@ func setFlags() {
 	rootCmd.Flags().BoolVarP(&Debug, "debug", "d", false, "show debug information")
 	rootCmd.Flags().BoolVarP(&Persist, "persist", "p", false, "keep gotorrent open after selecting torrent")
 	rootCmd.Flags().StringVarP(&DownloadFolder, "download-folder", "f", "", "folder where files are downloaded")
+	rootCmd.Flags().StringVarP(&VisitCommand, "visit-command", "v", "", "non-standard command used to visit a magnet link")
 }
 
 func loadConfig() {
 	err := viper.BindPFlag("download-folder", rootCmd.Flags().Lookup("download-folder"))
+	if err != nil {
+		panic(err)
+	}
+
+	err = viper.BindPFlag("visit-command", rootCmd.Flags().Lookup("visit-command"))
 	if err != nil {
 		panic(err)
 	}

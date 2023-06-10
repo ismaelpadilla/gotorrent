@@ -29,6 +29,7 @@ type Model struct {
 	ready            bool
 	mode             Mode
 	searchInput      textinput.Model
+	visitCommand     string
 	message          string
 	persist          bool
 	debug            bool
@@ -38,6 +39,7 @@ type Config struct {
 	Client         interfaces.Client
 	Persist        bool
 	DownloadFolder string
+	VisitCommand   string
 	Debug          bool
 }
 

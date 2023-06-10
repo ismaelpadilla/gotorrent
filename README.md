@@ -66,6 +66,7 @@ Input a number and press enter to navigate to that torrent's magnet link. Or use
 ```
   -d, --debug                    show debug information
   -f, --download-folder string   folder where files are downloaded
+  -v, --visit-command "my-app"   non-standard command used to visit a magnet link
   -h, --help                     help for gotorrent
   -p, --persist                  keep gotorrent open after selecting torrent
 ```
@@ -83,14 +84,16 @@ A `config` file can be put in the following locations:
 
 ## Config keys
 
-Only one configuration key can be set:
+These configuration key can be set:
 
 `download-folder`: Same as the `--download-folder` flag.
+`visit-command`: Same as the `--visit-command` flag.
 
 ## Configuration file example
 
 ```toml
 download-folder = "/home/myUser/torrent"
+visit-command = "my-downloader --now %s"
 ```
 
 
